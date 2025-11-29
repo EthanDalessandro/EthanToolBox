@@ -1,0 +1,20 @@
+{
+    "name": "com.ethan.toolbox",
+    "version": "1.0.0",
+    "displayName": "Ethan ToolBox",
+    "description": "A collection of useful tools and utilities for Unity, including a lightweight Dependency Injection system.",
+    "unity": "2021.3",
+    "documentationUrl": "https://github.com/EthanDalessandro/EthanToolBox",
+    "changelogUrl": "https://github.com/EthanDalessandro/EthanToolBox/releases",
+    "licensesUrl": "https://github.com/EthanDalessandro/EthanToolBox/blob/main/LICENSE",
+    "keywords": [
+        "toolbox",
+        "dependency-injection",
+        "utilities"
+    ],
+    "author": {
+        "name": "Ethan",
+        "email": "contact@example.com",
+        "url": "https://github.com/EthanDalessandro"
+    }
+}
