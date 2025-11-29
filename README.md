@@ -21,6 +21,34 @@ You can install this package directly from GitHub via the Unity Package Manager.
 
 A lightweight DI system to manage your game's dependencies.
 
+
+### How it Works
+
+```mermaid
+sequenceDiagram
+    participant Unity
+    participant Root as CompositionRoot
+    participant Container as DIContainer
+    participant Injector
+    participant Consumer as MonoBehaviour (Consumer)
+
+    Note over Unity, Root: Initialization Phase
+    Unity->>Root: Awake()
+    Root->>Container: Register Services (Singleton/Transient)
+    
+    Note over Root, Consumer: Injection Phase
+    Root->>Root: Find all MonoBehaviours
+    loop For each MonoBehaviour
+        Root->>Injector: Inject(Consumer)
+        Injector->>Consumer: Scan for [Inject] attributes
+        alt Field found
+            Injector->>Container: Resolve(ServiceType)
+            Container-->>Injector: Return Service Instance
+            Injector->>Consumer: Set Field Value
+        end
+    end
+```
+
 **Quick Start:**
 
 1. **Create a Service:**
