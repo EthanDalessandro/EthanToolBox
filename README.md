@@ -14,7 +14,6 @@ You can install this package directly from GitHub via the Unity Package Manager.
    ```
    https://github.com/EthanDalessandro/EthanToolBox.git?path=/Assets/EthanToolBox
    ```
-   *(Make sure to replace `EthanDalessandro` with your actual GitHub username if different)*
 
 ## Features
 
