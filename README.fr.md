@@ -1,7 +1,4 @@
-# EthanToolBox
-
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-[![fr](https://img.shields.io/badge/lang-fr-green.svg)](README.fr.md)
+# EthanToolBox [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md) [![fr](https://img.shields.io/badge/lang-fr-green.svg)](README.fr.md)
 
 Une boîte à outils légère pour Unity, incluant un système simple d'Injection de Dépendance.
 
