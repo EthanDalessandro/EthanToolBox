@@ -35,7 +35,9 @@ A lightweight DI system to manage your game's dependencies.
 2. **Create an Installer (Composition Root):**
    Create a script inheriting from `CompositionRoot` and attach it to a GameObject in your scene.
    ```csharp
-   public class GameInstaller : CompositionRoot
+   using EthanToolBox.Core.DependencyInjection;
+
+   public class GameInstaller : DICompositionRoot
    {
        protected override void Configure(DIContainer container)
        {

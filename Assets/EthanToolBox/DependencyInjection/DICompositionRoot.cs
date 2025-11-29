@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace EthanToolBox.Core.DependencyInjection
 {
-    public abstract class CompositionRoot : MonoBehaviour
+    [DefaultExecutionOrder(-1000)]
+    public abstract class DICompositionRoot : MonoBehaviour
     {
         protected DIContainer Container;
         protected Injector Injector;
@@ -16,7 +17,7 @@ namespace EthanToolBox.Core.DependencyInjection
 
             // Inject into all MonoBehaviours in the scene (optional, but useful for auto-injection)
             // For better performance, you might want to manually register objects to inject.
-            var allMonoBehaviours = FindObjectsOfType<MonoBehaviour>(true);
+            var allMonoBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
             foreach (var mb in allMonoBehaviours)
             {
                 // Skip the CompositionRoot itself to avoid circular issues or double init if not careful
