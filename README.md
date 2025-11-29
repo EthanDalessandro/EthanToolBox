@@ -59,6 +59,23 @@ A lightweight DI system to manage your game's dependencies.
    }
    ```
 
+
+### System Characteristics
+
+**When to use this DI System?**
+This system is designed for **Small to Medium-sized projects**, **Prototypes**, or **Tool Development**. It provides the core benefits of Dependency Injection without the complexity and performance overhead of large frameworks like Zenject or VContainer.
+
+**Strengths:**
+- **Lightweight:** Minimal performance impact and small codebase.
+- **Simple:** Very low learning curve. Easy to setup and debug.
+- **No External Dependencies:** Keeps your project clean.
+- **Explicit:** You control exactly what gets registered and injected.
+
+**Weaknesses:**
+- **Manual Registration:** You must manually register services in the Composition Root.
+- **Basic Features:** Does not support complex features like circular dependency resolution, sub-containers, or conditional bindings.
+- **Scene Scanning:** The auto-injection relies on `FindObjectsByType`, which can be slow on very large scenes with thousands of MonoBehaviours (though this can be optimized by manually injecting specific objects).
+
 ## Requirements
 
 - Unity 2021.3 or higher.
