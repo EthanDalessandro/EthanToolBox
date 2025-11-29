@@ -235,6 +235,21 @@ _audioManager.PlaySfx(explosionClip);
 _audioManager.PlayMusic(backgroundMusic);
 ```
 
+### UI Tools
+ 
+> [!IMPORTANT]
+> **TextMeshPro Required**: These tools generate UI using TextMeshPro. Ensure the TextMeshPro package is installed and "TMP Essentials" are imported in your project.
+
+**Smart List View Generator:**
+Right-click in Hierarchy -> `EthanToolBox > UI > Smart List View`.
+Creates a ready-to-use ScrollView with `VerticalLayoutGroup` and `ContentSizeFitter` pre-configured.
+
+**Advanced Generators:**
+- **Main Menu:** Generates a full menu with Play/Quit logic.
+- **Pause Menu:** Generates a pause screen with Resume/Quit logic.
+- **Settings Panel:** Generates Volume and Quality settings with auto-save.
+- **Loading Screen:** Generates a loading screen with a progress bar.
+ 
 ### Extensions
 
 Useful shortcuts for everyday coding.

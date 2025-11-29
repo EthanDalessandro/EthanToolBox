@@ -235,6 +235,21 @@ _audioManager.PlaySfx(explosionClip);
 _audioManager.PlayMusic(backgroundMusic);
 ```
 
+### Outils UI (UI Tools)
+ 
+> [!IMPORTANT]
+> **TextMeshPro Requis** : Ces outils génèrent une UI utilisant TextMeshPro. Assurez-vous que le package TextMeshPro est installé et que les "TMP Essentials" sont importés.
+
+**Générateur de Liste Intelligente (Smart List View) :**
+Clic droit dans la Hiérarchie -> `EthanToolBox > UI > Smart List View`.
+Crée une ScrollView prête à l'emploi avec `VerticalLayoutGroup` et `ContentSizeFitter` pré-configurés.
+
+**Générateurs Avancés :**
+- **Main Menu :** Génère un menu complet avec logique Jouer/Quitter.
+- **Pause Menu :** Génère un écran de pause avec logique Reprendre/Quitter.
+- **Settings Panel :** Génère les réglages Volume/Qualité avec sauvegarde auto.
+- **Loading Screen :** Génère un écran de chargement avec barre de progression.
+ 
 ### Extensions
 
 Des raccourcis utiles pour le code de tous les jours.
