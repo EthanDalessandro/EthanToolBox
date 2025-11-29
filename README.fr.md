@@ -197,12 +197,119 @@ Un Bus d'Événements typé pour une communication découplée entre les systèm
    {
        [Inject] private IEventBus _eventBus;
 
-       public void Die()
-       {
-           _eventBus.Raise(new PlayerDiedEvent { PlayerId = 1 });
-       }
    }
    ```
+
+### Object Pooling (Piscine d'Objets)
+
+Un système générique pour recycler les objets et améliorer les performances.
+
+**Utilisation :**
+```csharp
+// 1. Créer une Piscine
+private ObjectPool<Bullet> _bulletPool;
+
+void Awake()
+{
+    _bulletPool = new ObjectPool<Bullet>(bulletPrefab, 10, transform);
+}
+
+// 2. Récupérer un objet
+Bullet bullet = _bulletPool.Get();
+
+// 3. Le rendre plus tard
+_bulletPool.Return(bullet);
+```
+
+### Audio Manager (Gestionnaire Audio)
+
+Un service simple pour gérer la Musique et les Effets Sonores (SFX).
+
+**Utilisation :**
+```csharp
+// Enregistrer dans le CompositionRoot
+container.RegisterSingleton<IAudioManager>(audioManagerInstance);
+
+// Utiliser dans le code
+_audioManager.PlaySfx(explosionClip);
+_audioManager.PlayMusic(backgroundMusic);
+```
+
+### Extensions
+
+Des raccourcis utiles pour le code de tous les jours.
+
+> [!NOTE]
+> N'oubliez pas d'ajouter `using EthanToolBox.Core.Extensions;` dans votre script !
+
+#### Transform
+- `t.Reset()` : Réinitialise position, rotation et échelle.
+- `t.DestroyChildren()` : Détruit tous les enfants.
+- `t.DestroyChildrenImmediate()` : Détruit tous les enfants immédiatement (Éditeur).
+- `t.LookAt2D(target)` : Regarde vers la cible (2D).
+- `t.SetPositionX(x)`, `t.SetPositionY(y)`, `t.SetPositionZ(z)` : Modifie un axe de position.
+- `t.SetLocalScale(scale)` : Définit une échelle uniforme.
+
+#### Vector3
+- `v.WithX(x)`, `v.WithY(y)`, `v.WithZ(z)` : Retourne un vecteur avec un axe modifié.
+- `v.AddX(x)`, `v.AddY(y)`, `v.AddZ(z)` : Ajoute une valeur à un axe.
+- `v.Flat()` : Retourne le vecteur avec Y = 0.
+- `v.DirectionTo(target)` : Retourne la direction normalisée vers la cible.
+- `v.DistanceTo(target)` : Retourne la distance vers la cible.
+- `v.Closest(list)` : Retourne le vecteur le plus proche dans une liste.
+
+#### Vector2
+- `v.WithX(x)`, `v.WithY(y)` : Retourne un vecteur avec un axe modifié.
+- `v.DirectionTo(target)` : Retourne la direction normalisée vers la cible.
+- `v.DistanceTo(target)` : Retourne la distance vers la cible.
+
+#### GameObject
+- `go.GetOrAddComponent<T>()` : Récupère ou ajoute le composant.
+- `go.HasComponent<T>()` : Vérifie si le composant existe.
+- `go.Show()` : Active le GameObject.
+- `go.Hide()` : Désactive le GameObject.
+- `go.SetLayerRecursive(layer)` : Change le layer de l'objet et ses enfants.
+
+#### Collections (List/Array)
+- `list.IsNullOrEmpty()` : Vérifie si null ou vide.
+- `list.GetRandom()` : Retourne un élément aléatoire.
+- `list.Shuffle()` : Mélange la liste.
+- `list.AddUnique(item)` : Ajoute l'élément seulement s'il n'est pas déjà présent.
+- `list.ForEach(action)` : Exécute une action sur chaque élément.
+
+#### Math
+- `val.Remap(min1, max1, min2, max2)` : Remappe une valeur entre deux plages.
+- `val.Snap(interval)` : Arrondit à l'intervalle le plus proche.
+- `val.ToPercent()` : Formate 0-1 en "XX%".
+- `val.SecondsToFormattedString()` : Formate les secondes en "MM:SS".
+- `int.IsEven()`, `int.IsOdd()` : Vérifie la parité.
+
+#### String
+- `text.Color(color)` : Formate pour la Console Unity (Rich Text).
+- `text.Bold()`, `text.Italic()` : Formate le style.
+- `text.Truncate(length)` : Coupe le texte s'il est trop long.
+- `text.ToInt()`, `text.ToFloat()` : Parsing sécurisé.
+
+#### Color
+- `c.WithAlpha(a)` : Retourne la couleur avec alpha modifié.
+- `c.WithRed(r)`, `c.WithGreen(g)`, `c.WithBlue(b)` : Retourne la couleur avec canal modifié.
+- `c.ToHex()` : Retourne le code hex (ex: "#FF0000").
+
+#### UI (RectTransform)
+- `rt.SetWidth(w)`, `rt.SetHeight(h)` : Définit les dimensions.
+- `rt.SetSize(w, h)` : Définit la taille (sizeDelta).
+- `rt.SetAnchor(x, y)` : Définit les ancres.
+- `rt.SetPivot(x, y)` : Définit le pivot.
+
+#### Physique (Rigidbody)
+- `rb.Stop()` : Met la vélocité à zéro.
+
+#### MonoBehaviour
+- `this.Delay(seconds, action)` : Exécute une action après un délai.
+
+#### LayerMask
+- `mask.Contains(layer)` : Vérifie si le layer est dans le masque.
+
 
 ## Prérequis
 

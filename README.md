@@ -197,12 +197,119 @@ A type-safe Event Bus for decoupled communication between systems.
    {
        [Inject] private IEventBus _eventBus;
 
-       public void Die()
-       {
-           _eventBus.Raise(new PlayerDiedEvent { PlayerId = 1 });
-       }
    }
    ```
+
+### Object Pooling
+
+A generic system to recycle objects and improve performance.
+
+**Usage:**
+```csharp
+// 1. Create a Pool
+private ObjectPool<Bullet> _bulletPool;
+
+void Awake()
+{
+    _bulletPool = new ObjectPool<Bullet>(bulletPrefab, 10, transform);
+}
+
+// 2. Get an object
+Bullet bullet = _bulletPool.Get();
+
+// 3. Return it later
+_bulletPool.Return(bullet);
+```
+
+### Audio Manager
+
+A simple service to handle Music and SFX.
+
+**Usage:**
+```csharp
+// Register in CompositionRoot
+container.RegisterSingleton<IAudioManager>(audioManagerInstance);
+
+// Use in code
+_audioManager.PlaySfx(explosionClip);
+_audioManager.PlayMusic(backgroundMusic);
+```
+
+### Extensions
+
+Useful shortcuts for everyday coding.
+
+> [!NOTE]
+> Don't forget to add `using EthanToolBox.Core.Extensions;` to your script!
+
+#### Transform
+- `t.Reset()`: Resets position, rotation, and scale.
+- `t.DestroyChildren()`: Destroys all children.
+- `t.DestroyChildrenImmediate()`: Destroys all children immediately (Editor).
+- `t.LookAt2D(target)`: Rotates to look at target (2D).
+- `t.SetPositionX(x)`, `t.SetPositionY(y)`, `t.SetPositionZ(z)`: Sets individual position axes.
+- `t.SetLocalScale(scale)`: Sets uniform scale.
+
+#### Vector3
+- `v.WithX(x)`, `v.WithY(y)`, `v.WithZ(z)`: Returns vector with modified axis.
+- `v.AddX(x)`, `v.AddY(y)`, `v.AddZ(z)`: Returns vector with added value to axis.
+- `v.Flat()`: Returns vector with Y = 0.
+- `v.DirectionTo(target)`: Returns normalized direction to target.
+- `v.DistanceTo(target)`: Returns distance to target.
+- `v.Closest(list)`: Returns the closest vector from a list.
+
+#### Vector2
+- `v.WithX(x)`, `v.WithY(y)`: Returns vector with modified axis.
+- `v.DirectionTo(target)`: Returns normalized direction to target.
+- `v.DistanceTo(target)`: Returns distance to target.
+
+#### GameObject
+- `go.GetOrAddComponent<T>()`: Gets component or adds it if missing.
+- `go.HasComponent<T>()`: Checks if component exists.
+- `go.Show()`: Sets active to true.
+- `go.Hide()`: Sets active to false.
+- `go.SetLayerRecursive(layer)`: Sets layer for object and children.
+
+#### Collections (List/Array)
+- `list.IsNullOrEmpty()`: Checks if null or empty.
+- `list.GetRandom()`: Returns a random element.
+- `list.Shuffle()`: Randomizes the list (Fisher-Yates).
+- `list.AddUnique(item)`: Adds item only if not present.
+- `list.ForEach(action)`: Executes action on each element.
+
+#### Math
+- `val.Remap(min1, max1, min2, max2)`: Remaps value between ranges.
+- `val.Snap(interval)`: Snaps value to nearest interval.
+- `val.ToPercent()`: Formats 0-1 float to "XX%".
+- `val.SecondsToFormattedString()`: Formats seconds to "MM:SS".
+- `int.IsEven()`, `int.IsOdd()`: Checks parity.
+
+#### String
+- `text.Color(color)`: Formats for Unity Console (Rich Text).
+- `text.Bold()`, `text.Italic()`: Formats style.
+- `text.Truncate(length)`: Cuts string if too long.
+- `text.ToInt()`, `text.ToFloat()`: Safe parsing.
+
+#### Color
+- `c.WithAlpha(a)`: Returns color with modified alpha.
+- `c.WithRed(r)`, `c.WithGreen(g)`, `c.WithBlue(b)`: Returns color with modified channel.
+- `c.ToHex()`: Returns hex string (e.g., "#FF0000").
+
+#### UI (RectTransform)
+- `rt.SetWidth(w)`, `rt.SetHeight(h)`: Sets dimensions.
+- `rt.SetSize(w, h)`: Sets size delta.
+- `rt.SetAnchor(x, y)`: Sets anchor min/max.
+- `rt.SetPivot(x, y)`: Sets pivot.
+
+#### Physics (Rigidbody)
+- `rb.Stop()`: Sets velocity and angular velocity to zero.
+
+#### MonoBehaviour
+- `this.Delay(seconds, action)`: Executes action after delay.
+
+#### LayerMask
+- `mask.Contains(layer)`: Checks if layer is in mask.
+
 
 ## Requirements
 
