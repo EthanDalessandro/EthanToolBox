@@ -24,6 +24,17 @@ namespace EthanToolBox.Core.DependencyInjection
             _registrations[typeof(TService)] = () => factory();
         }
 
+        public void RegisterSingleton(Type serviceType, Func<object> factory)
+        {
+            var lazy = new Lazy<object>(factory);
+            _registrations[serviceType] = () => lazy.Value;
+        }
+
+        public void RegisterSingleton(Type serviceType, object instance)
+        {
+            _registrations[serviceType] = () => instance;
+        }
+
         public object Resolve(Type serviceType)
         {
             if (_registrations.TryGetValue(serviceType, out var factory))

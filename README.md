@@ -52,7 +52,11 @@ sequenceDiagram
 **Quick Start:**
 
 1. **Create a Service:**
+   Add the `[Service]` attribute to your class.
    ```csharp
+   using EthanToolBox.Core.DependencyInjection;
+
+   [Service] // Automatically registers this class
    public class MyService
    {
        public void DoSomething() => Debug.Log("Hello!");
@@ -60,7 +64,8 @@ sequenceDiagram
    ```
 
 2. **Create an Installer (Composition Root):**
-   Create a script inheriting from `CompositionRoot` and attach it to a GameObject in your scene.
+   Create a script inheriting from `DICompositionRoot` and attach it to a GameObject in your scene.
+   *You don't need to write anything in `Configure` if you use attributes!*
    ```csharp
    using EthanToolBox.Core.DependencyInjection;
 
@@ -68,7 +73,8 @@ sequenceDiagram
    {
        protected override void Configure(DIContainer container)
        {
-           container.RegisterSingleton<MyService>(new MyService());
+           // Manual registration is optional now!
+           // container.RegisterSingleton<OtherService>(new OtherService());
        }
    }
    ```
@@ -86,6 +92,8 @@ sequenceDiagram
        }
    }
    ```
+
+
 
 
 ### System Characteristics

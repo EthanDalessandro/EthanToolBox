@@ -51,7 +51,11 @@ sequenceDiagram
 **Démarrage Rapide :**
 
 1. **Créer un Service :**
+   Ajoutez l'attribut `[Service]` à votre classe.
    ```csharp
+   using EthanToolBox.Core.DependencyInjection;
+
+   [Service] // Enregistre automatiquement cette classe
    public class MyService
    {
        public void DoSomething() => Debug.Log("Bonjour !");
@@ -59,7 +63,8 @@ sequenceDiagram
    ```
 
 2. **Créer un Installateur (Composition Root) :**
-   Créez un script héritant de `CompositionRoot` et attachez-le à un GameObject dans votre scène.
+   Créez un script héritant de `DICompositionRoot` et attachez-le à un GameObject dans votre scène.
+   *Vous n'avez rien à écrire dans `Configure` si vous utilisez les attributs !*
    ```csharp
    using EthanToolBox.Core.DependencyInjection;
 
@@ -67,7 +72,8 @@ sequenceDiagram
    {
        protected override void Configure(DIContainer container)
        {
-           container.RegisterSingleton<MyService>(new MyService());
+           // L'enregistrement manuel est optionnel maintenant !
+           // container.RegisterSingleton<AutreService>(new AutreService());
        }
    }
    ```
@@ -85,6 +91,8 @@ sequenceDiagram
        }
    }
    ```
+
+
 
 
 ### Caractéristiques du Système
