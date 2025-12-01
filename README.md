@@ -127,6 +127,91 @@ This system is designed for **Small to Medium-sized projects**, **Prototypes**, 
 - **Basic Features:** Does not support complex features like circular dependency resolution, sub-containers, or conditional bindings.
 - **Scene Scanning:** The auto-injection relies on `FindObjectsByType`, which can be slow on very large scenes with thousands of MonoBehaviours (though this can be optimized by manually injecting specific objects).
 
+### Audio Manager
+
+A professional-grade audio system featuring pooling, cross-fading, and a data-driven workflow using `SoundData`.
+
+**Key Features:**
+- **Data-Driven:** All sound settings (volume, pitch, 3D blend, randomization) are stored in `SoundData` assets, not in code.
+- **Pooling:** Automatically recycles `AudioSource` components to save performance.
+- **Channels:** Built-in support for Master, Music, SFX, UI, and Voice channels.
+- **Music Transitions:** Smooth cross-fading between tracks.
+
+**Step-by-Step Guide:**
+
+#### 1. Setup
+1.  In the Unity Editor, go to **EthanToolBox > Setup Audio Manager**.
+2.  This will automatically create an `AudioManager` GameObject in your scene if one doesn't exist.
+3.  It is automatically registered as a service, so it's ready to be injected immediately.
+
+#### 2. Create Sound Data
+Instead of using raw `AudioClip`s, you create `SoundData` assets.
+1.  Right-click in the **Project Window**.
+2.  Go to **Create > EthanToolBox > Audio > Sound Data**.
+3.  Name the file (e.g., `Sfx_Jump` or `Music_Battle`).
+4.  **Inspector Settings:**
+    - **Clips:** Drag your audio clip(s) here. If multiple are added, one will be picked at random.
+    - **Volume/Pitch:** Set base values.
+    - **Randomization:** Add variance to make sounds feel natural (e.g., Volume Variance 0.1, Pitch Variance 0.1).
+    - **Spatial Blend:** Set to **0 for 2D** (UI/Music) or **1 for 3D** (World sounds).
+
+#### 3. Play Sounds in Code
+Inject `IAudioManager` and expose fields for `SoundData`.
+
+```csharp
+using UnityEngine;
+using EthanToolBox.Core.DependencyInjection;
+using EthanToolBox.Core.Audio;
+
+public class PlayerAudio : MonoBehaviour
+{
+    [Inject] private IAudioManager _audioManager;
+
+    [Header("Audio Assets")]
+    public SoundData JumpSound;       // Assign 'Sfx_Jump' here
+    public SoundData FootstepSound;   // Assign 'Sfx_Footstep' here
+    public SoundData BackgroundMusic; // Assign 'Music_Battle' here
+
+    private void Start()
+    {
+        // Play music with a 2-second crossfade transition
+        _audioManager.PlayMusic(BackgroundMusic, 2f);
+    }
+
+    public void PlayJump()
+    {
+        // Play sound at the player's position (important for 3D sounds)
+        _audioManager.PlaySfx(JumpSound, transform.position);
+    }
+
+    public void PlayFootstep()
+    {
+        // Play sound attached to the player (optional logic)
+        _audioManager.PlaySfx(FootstepSound, transform.position);
+    }
+}
+```
+
+#### 4. Global Volume Control
+You can control volume for specific channels (e.g., for a Settings menu).
+```csharp
+// Set Master volume to 50%
+_audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
+
+// Mute Music
+_audioManager.SetGlobalVolume(AudioChannel.Music, 0f);
+```
+
+#### 5. Advanced: Audio Mixer Integration
+For professional audio control, you can use Unity's **Audio Mixer**.
+
+1.  **Create an Audio Mixer** in your project (Right-click > Create > Audio Mixer).
+2.  **Expose Groups:** Create groups like Master, Music, SFX, UI, Voice.
+3.  **Assign in AudioManager:** Select the `AudioManager` GameObject in your scene.
+    - Drag your Mixer into the `Audio Mixer` field.
+    - Drag your specific Groups into the corresponding fields (`Master Group`, `Music Group`, etc.).
+4.  **SoundData Override:** By default, sounds play on their channel's group (e.g., `PlaySfx` uses `SfxGroup`). You can override this per-sound in the `SoundData` asset by assigning a specific `Mixer Group`.
+
 ### Scene Management
 
 A simple async-ready Scene Management system.
@@ -243,91 +328,6 @@ Bullet bullet = _bulletPool.Get();
 // 3. Return it later
 _bulletPool.Return(bullet);
 ```
-
-### Audio Manager
-
-A professional-grade audio system featuring pooling, cross-fading, and a data-driven workflow using `SoundData`.
-
-**Key Features:**
-- **Data-Driven:** All sound settings (volume, pitch, 3D blend, randomization) are stored in `SoundData` assets, not in code.
-- **Pooling:** Automatically recycles `AudioSource` components to save performance.
-- **Channels:** Built-in support for Master, Music, SFX, UI, and Voice channels.
-- **Music Transitions:** Smooth cross-fading between tracks.
-
-**Step-by-Step Guide:**
-
-#### 1. Setup
-1.  In the Unity Editor, go to **EthanToolBox > Setup Audio Manager**.
-2.  This will automatically create an `AudioManager` GameObject in your scene if one doesn't exist.
-3.  It is automatically registered as a service, so it's ready to be injected immediately.
-
-#### 2. Create Sound Data
-Instead of using raw `AudioClip`s, you create `SoundData` assets.
-1.  Right-click in the **Project Window**.
-2.  Go to **Create > EthanToolBox > Audio > Sound Data**.
-3.  Name the file (e.g., `Sfx_Jump` or `Music_Battle`).
-4.  **Inspector Settings:**
-    - **Clips:** Drag your audio clip(s) here. If multiple are added, one will be picked at random.
-    - **Volume/Pitch:** Set base values.
-    - **Randomization:** Add variance to make sounds feel natural (e.g., Volume Variance 0.1, Pitch Variance 0.1).
-    - **Spatial Blend:** Set to **0 for 2D** (UI/Music) or **1 for 3D** (World sounds).
-
-#### 3. Play Sounds in Code
-Inject `IAudioManager` and expose fields for `SoundData`.
-
-```csharp
-using UnityEngine;
-using EthanToolBox.Core.DependencyInjection;
-using EthanToolBox.Core.Audio;
-
-public class PlayerAudio : MonoBehaviour
-{
-    [Inject] private IAudioManager _audioManager;
-
-    [Header("Audio Assets")]
-    public SoundData JumpSound;       // Assign 'Sfx_Jump' here
-    public SoundData FootstepSound;   // Assign 'Sfx_Footstep' here
-    public SoundData BackgroundMusic; // Assign 'Music_Battle' here
-
-    private void Start()
-    {
-        // Play music with a 2-second crossfade transition
-        _audioManager.PlayMusic(BackgroundMusic, 2f);
-    }
-
-    public void PlayJump()
-    {
-        // Play sound at the player's position (important for 3D sounds)
-        _audioManager.PlaySfx(JumpSound, transform.position);
-    }
-
-    public void PlayFootstep()
-    {
-        // Play sound attached to the player (optional logic)
-        _audioManager.PlaySfx(FootstepSound, transform.position);
-    }
-}
-```
-
-#### 4. Global Volume Control
-You can control volume for specific channels (e.g., for a Settings menu).
-```csharp
-// Set Master volume to 50%
-_audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
-
-// Mute Music
-_audioManager.SetGlobalVolume(AudioChannel.Music, 0f);
-```
-
-#### 5. Advanced: Audio Mixer Integration
-For professional audio control, you can use Unity's **Audio Mixer**.
-
-1.  **Create an Audio Mixer** in your project (Right-click > Create > Audio Mixer).
-2.  **Expose Groups:** Create groups like Master, Music, SFX, UI, Voice.
-3.  **Assign in AudioManager:** Select the `AudioManager` GameObject in your scene.
-    - Drag your Mixer into the `Audio Mixer` field.
-    - Drag your specific Groups into the corresponding fields (`Master Group`, `Music Group`, etc.).
-4.  **SoundData Override:** By default, sounds play on their channel's group (e.g., `PlaySfx` uses `SfxGroup`). You can override this per-sound in the `SoundData` asset by assigning a specific `Mixer Group`.
 
 ### UI Tools
  

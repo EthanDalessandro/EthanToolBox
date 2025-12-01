@@ -1,6 +1,6 @@
-# EthanToolBox [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md) [![fr](https://img.shields.io/badge/lang-fr-green.svg)](README.fr.md)
+# EthanToolBox [![en](https://img.shields.io/badge/lang-en-green.svg)](README.md) [![fr](https://img.shields.io/badge/lang-fr-red.svg)](README.fr.md)
 
-Une boîte à outils légère pour Unity, incluant un système simple d'Injection de Dépendance.
+Une boîte à outils légère pour Unity, incluant un système d'Injection de Dépendance simple.
 
 ## Installation
 
@@ -17,7 +17,7 @@ Vous pouvez installer ce package directement depuis GitHub via le Unity Package 
 
 ## Fonctionnalités
 
-### Injection de Dépendance (Dependency Injection)
+### Injection de Dépendance (DI)
 
 Un système DI léger pour gérer les dépendances de votre jeu.
 
@@ -39,7 +39,7 @@ sequenceDiagram
     Root->>Root: Trouver tous les MonoBehaviours
     loop Pour chaque MonoBehaviour
         Root->>Injector: Inject(Consumer)
-        Injector->>Consumer: Scanner pour attributs [Inject]
+        Injector->>Consumer: Scanner attributs [Inject]
         alt Champ trouvé
             Injector->>Container: Resolve(ServiceType)
             Container-->>Injector: Retourner Instance Service
@@ -50,7 +50,7 @@ sequenceDiagram
 
 **Démarrage Rapide :**
 
-1. **Configurer le DI dans la Scène :**
+1. **Configurer DI dans la Scène :**
    - Dans l'éditeur Unity, allez dans **EthanToolBox > Setup DI**.
    - Cela créera automatiquement un GameObject `DICompositionRoot` avec le composant `DefaultCompositionRoot`.
 
@@ -67,7 +67,7 @@ sequenceDiagram
    ```
 
 3. **Injecter dans un MonoBehaviour :**
-   Ajoutez l'attribut `[Inject]` à n'importe quel champ que vous souhaitez remplir.
+   Ajoutez l'attribut `[Inject]` au champ que vous voulez remplir.
    ```csharp
    public class Player : MonoBehaviour
    {
@@ -81,20 +81,20 @@ sequenceDiagram
    ```
 
 4. **(Optionnel) Installateur Personnalisé :**
-   Si vous avez besoin d'une configuration spécifique, vous pouvez toujours hériter de `DICompositionRoot`.
+   Si vous avez besoin d'une configuration spécifique, vous pouvez hériter de `DICompositionRoot`.
    ```csharp
    public class GameInstaller : DICompositionRoot
    {
        protected override void Configure(DIContainer container)
        {
            // Enregistrement manuel
-           // container.RegisterSingleton<AutreService>(new AutreService());
+           // container.RegisterSingleton<OtherService>(new OtherService());
        }
    }
    ```
 
 5. **Injecter dans un MonoBehaviour :**
-   Ajoutez l'attribut `[Inject]` à n'importe quel champ que vous souhaitez remplir.
+   Ajoutez l'attribut `[Inject]` au champ que vous voulez remplir.
    ```csharp
    public class Player : MonoBehaviour
    {
@@ -113,25 +113,85 @@ sequenceDiagram
 ### Caractéristiques du Système
 
 **Quand utiliser ce système DI ?**
-Ce système est conçu pour les **Petits à Moyens projets**, les **Prototypes**, ou le **Développement d'Outils**. Il offre les avantages principaux de l'Injection de Dépendance sans la complexité et le coût de performance des gros frameworks comme Zenject ou VContainer.
+Ce système est conçu pour les **Projets de taille petite à moyenne**, les **Prototypes**, ou le **Développement d'Outils**. Il offre les avantages principaux de l'Injection de Dépendance sans la complexité et le coût en performance des gros frameworks comme Zenject ou VContainer.
 
-**Points Forts :**
+**Forces :**
 - **Léger :** Impact minimal sur les performances et petite base de code.
-- **Simple :** Courbe d'apprentissage très faible. Facile à configurer et à déboguer.
+- **Simple :** Courbe d'apprentissage très faible. Facile à configurer et déboguer.
 - **Pas de Dépendances Externes :** Garde votre projet propre.
 - **Explicite :** Vous contrôlez exactement ce qui est enregistré et injecté.
 
-**Points Faibles :**
+**Faiblesses :**
 - **Enregistrement Manuel :** Vous devez enregistrer manuellement les services dans le Composition Root.
 - **Fonctionnalités Basiques :** Ne supporte pas les fonctionnalités complexes comme la résolution de dépendances circulaires, les sous-conteneurs, ou les liaisons conditionnelles.
-- **Scan de Scène :** L'auto-injection repose sur `FindObjectsByType`, ce qui peut être lent sur de très grosses scènes avec des milliers de MonoBehaviours (bien que cela puisse être optimisé en injectant manuellement des objets spécifiques).
+- **Scan de Scène :** L'auto-injection repose sur `FindObjectsByType`, qui peut être lent sur de très grandes scènes avec des milliers de MonoBehaviours (bien que cela puisse être optimisé en injectant manuellement des objets spécifiques).
+
+### Audio Manager (Gestionnaire Audio)
+
+Un système audio professionnel avec pooling, cross-fading et configuration par données.
+
+**Fonctionnalités :**
+- **SoundData :** Configurez les sons (volume, pitch, variance, 3D) dans des ScriptableObjects.
+- **Pooling :** Réutilisation efficace des AudioSources.
+- **Canaux :** Master, Musique, SFX, UI, Voix.
+- **Cross-Fading :** Transitions fluides entre les musiques.
+
+**Utilisation :**
+
+1.  **Configuration :**
+    - Dans l'éditeur Unity, allez dans **EthanToolBox > Setup Audio Manager**.
+    - Cela créera automatiquement un GameObject `AudioManager` dans votre scène s'il n'existe pas déjà.
+    - Il est automatiquement enregistré comme service, il est donc prêt à être injecté immédiatement.
+
+2.  **Créer un Sound Data :**
+    - Clic droit > **Create > EthanToolBox > Audio > Sound Data**.
+    - Assignez les clips et ajustez les réglages (Aléatoire, Spatial Blend, etc.).
+
+3.  **Jouer des Sons :**
+    ```csharp
+    public class Player : MonoBehaviour
+    {
+        [Inject] private IAudioManager _audioManager;
+        
+        public SoundData JumpSound;
+        public SoundData MusicTrack;
+
+        public void Jump()
+        {
+            // Jouer SFX (automatiquement poolé)
+            _audioManager.PlaySfx(JumpSound, transform.position);
+        }
+
+        public void StartMusic()
+        {
+            // Jouer Musique avec crossfade de 2s
+            _audioManager.PlayMusic(MusicTrack, 2f);
+        }
+    }
+    ```
+
+4.  **Contrôler le Volume :**
+    ```csharp
+    _audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
+    _audioManager.SetGlobalVolume(AudioChannel.Music, 0.8f);
+    ```
+
+#### 5. Avancé : Intégration Audio Mixer
+Pour un contrôle audio professionnel, vous pouvez utiliser l'**Audio Mixer** de Unity.
+
+1.  **Créer un Audio Mixer** dans votre projet (Clic droit > Create > Audio Mixer).
+2.  **Créer des Groupes :** Créez des groupes comme Master, Musique, SFX, UI, Voix.
+3.  **Assigner dans l'AudioManager :** Sélectionnez le GameObject `AudioManager` dans votre scène.
+    - Glissez votre Mixer dans le champ `Audio Mixer`.
+    - Glissez vos Groupes spécifiques dans les champs correspondants (`Master Group`, `Music Group`, etc.).
+4.  **Override dans SoundData :** Par défaut, les sons jouent sur le groupe de leur canal (ex: `PlaySfx` utilise `SfxGroup`). Vous pouvez surcharger cela par son dans l'asset `SoundData` en assignant un `Mixer Group` spécifique.
 
 ### Gestion de Scène (Scene Management)
 
-Un système de gestion de scène simple et compatible asynchrone.
+Un système de gestion de scène simple et compatible async.
 
 **Fonctionnalités :**
-- **Chargement Asynchrone :** `LoadSceneAsync` avec support des `Task`.
+- **Chargement Async :** `LoadSceneAsync` avec support `Task`.
 - **Groupes de Scènes :** Définissez une collection de scènes (ex: "Niveau 1" + "UI" + "Audio") à charger ensemble via un ScriptableObject.
 - **Chargement Additif :** Chargez facilement des scènes par-dessus d'autres.
 
@@ -163,7 +223,6 @@ Un système de gestion de scène simple et compatible asynchrone.
 
            // OU Charger un groupe de scènes
            await _sceneLoader.LoadSceneGroupAsync(Level1Group);
-       }
    }
    ```
 
@@ -172,7 +231,7 @@ Un système de gestion de scène simple et compatible asynchrone.
 Un Bus d'Événements typé pour une communication découplée entre les systèmes.
 
 **Fonctionnalités :**
-- **Typé (Type-Safe) :** Utilise des structs comme signaux d'événements.
+- **Typé :** Utilise des structs comme signaux d'événements.
 - **Découplé :** Les émetteurs et les abonnés n'ont pas besoin de se connaître.
 - **Performance :** Utilise l'invocation directe de délégués.
 
@@ -223,13 +282,13 @@ Un Bus d'Événements typé pour une communication découplée entre les systèm
    }
    ```
 
-### Object Pooling (Piscine d'Objets)
+### Object Pooling
 
 Un système générique pour recycler les objets et améliorer les performances.
 
 **Utilisation :**
 ```csharp
-// 1. Créer une Piscine
+// 1. Créer un Pool
 private ObjectPool<Bullet> _bulletPool;
 
 void Awake()
@@ -240,178 +299,93 @@ void Awake()
 // 2. Récupérer un objet
 Bullet bullet = _bulletPool.Get();
 
-// 3. Le rendre plus tard
+// 3. Le retourner plus tard
 _bulletPool.Return(bullet);
 ```
-
-### Audio Manager (Gestionnaire Audio)
-
-Un système audio professionnel incluant pooling, cross-fading, et un workflow basé sur les données avec `SoundData`.
-
-**Fonctionnalités Clés :**
-- **Basé sur les Données :** Tous les réglages (volume, pitch, 3D, aléatoire) sont stockés dans des assets `SoundData`, pas dans le code.
-- **Pooling :** Recycle automatiquement les composants `AudioSource` pour économiser les performances.
-- **Canaux :** Support natif pour les canaux Master, Musique, SFX, UI, et Voix.
-- **Transitions Musicales :** Cross-fading fluide entre les pistes.
-
-**Guide Étape par Étape :**
-
-#### 1. Configuration
-1.  Dans l'éditeur Unity, allez dans **EthanToolBox > Setup Audio Manager**.
-2.  Cela créera automatiquement un GameObject `AudioManager` dans votre scène s'il n'existe pas déjà.
-3.  Il est automatiquement enregistré comme service, il est donc prêt à être injecté immédiatement.
-
-#### 2. Créer un Sound Data
-Au lieu d'utiliser des `AudioClip` bruts, vous créez des assets `SoundData`.
-1.  Clic droit dans la **Fenêtre Projet**.
-2.  Allez dans **Create > EthanToolBox > Audio > Sound Data**.
-3.  Nommez le fichier (ex: `Sfx_Jump` ou `Music_Battle`).
-4.  **Réglages dans l'Inspecteur :**
-    - **Clips :** Glissez vos clips audio ici. Si plusieurs sont ajoutés, un sera choisi au hasard.
-    - **Volume/Pitch :** Définissez les valeurs de base.
-    - **Randomization :** Ajoutez de la variance pour rendre les sons naturels (ex: Volume Variance 0.1, Pitch Variance 0.1).
-    - **Spatial Blend :** Mettez à **0 pour 2D** (UI/Musique) ou **1 pour 3D** (Sons du monde).
-
-#### 3. Jouer des Sons dans le Code
-Injectez `IAudioManager` et exposez des champs pour `SoundData`.
-
-```csharp
-using UnityEngine;
-using EthanToolBox.Core.DependencyInjection;
-using EthanToolBox.Core.Audio;
-
-public class PlayerAudio : MonoBehaviour
-{
-    [Inject] private IAudioManager _audioManager;
-
-    [Header("Assets Audio")]
-    public SoundData JumpSound;       // Assignez 'Sfx_Jump' ici
-    public SoundData FootstepSound;   // Assignez 'Sfx_Footstep' ici
-    public SoundData BackgroundMusic; // Assignez 'Music_Battle' ici
-
-    private void Start()
-    {
-        // Jouer la musique avec une transition de 2 secondes
-        _audioManager.PlayMusic(BackgroundMusic, 2f);
-    }
-
-    public void PlayJump()
-    {
-        // Jouer le son à la position du joueur (important pour les sons 3D)
-        _audioManager.PlaySfx(JumpSound, transform.position);
-    }
-
-    public void PlayFootstep()
-    {
-        // Jouer le son
-        _audioManager.PlaySfx(FootstepSound, transform.position);
-    }
-}
-```
-
-#### 4. Contrôle du Volume Global
-Vous pouvez contrôler le volume pour des canaux spécifiques (ex: pour un menu d'options).
-```csharp
-// Mettre le volume Master à 50%
-_audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
-
-// Couper la Musique
-_audioManager.SetGlobalVolume(AudioChannel.Music, 0f);
-```
-
-#### 5. Avancé : Intégration Audio Mixer
-Pour un contrôle audio professionnel, vous pouvez utiliser l'**Audio Mixer** de Unity.
-
-1.  **Créer un Audio Mixer** dans votre projet (Clic droit > Create > Audio Mixer).
-2.  **Créer des Groupes :** Créez des groupes comme Master, Musique, SFX, UI, Voix.
-3.  **Assigner dans l'AudioManager :** Sélectionnez le GameObject `AudioManager` dans votre scène.
-    - Glissez votre Mixer dans le champ `Audio Mixer`.
-    - Glissez vos Groupes spécifiques dans les champs correspondants (`Master Group`, `Music Group`, etc.).
-4.  **Override dans SoundData :** Par défaut, les sons jouent sur le groupe de leur canal (ex: `PlaySfx` utilise `SfxGroup`). Vous pouvez surcharger cela par son dans l'asset `SoundData` en assignant un `Mixer Group` spécifique.
 
 ### Outils UI (UI Tools)
  
 > [!IMPORTANT]
-> **TextMeshPro Requis** : Ces outils génèrent une UI utilisant TextMeshPro. Assurez-vous que le package TextMeshPro est installé et que les "TMP Essentials" sont importés.
+> **TextMeshPro Requis** : Ces outils génèrent de l'UI utilisant TextMeshPro. Assurez-vous que le package TextMeshPro est installé et que les "TMP Essentials" sont importés dans votre projet.
 
-**Générateur de Liste Intelligente (Smart List View) :**
+**Générateur de Smart List View :**
 Clic droit dans la Hiérarchie -> `EthanToolBox > UI > Smart List View`.
 Crée une ScrollView prête à l'emploi avec `VerticalLayoutGroup` et `ContentSizeFitter` pré-configurés.
 
 **Générateurs Avancés :**
 - **Main Menu :** Génère un menu complet avec logique Jouer/Quitter.
 - **Pause Menu :** Génère un écran de pause avec logique Reprendre/Quitter.
-- **Settings Panel :** Génère les réglages Volume/Qualité avec sauvegarde auto.
+- **Settings Panel :** Génère des réglages de Volume et Qualité avec sauvegarde auto.
 - **Loading Screen :** Génère un écran de chargement avec barre de progression.
  
 ### Extensions
 
-Des raccourcis utiles pour le code de tous les jours.
+Raccourcis utiles pour le code de tous les jours.
 
 > [!NOTE]
-> N'oubliez pas d'ajouter `using EthanToolBox.Core.Extensions;` dans votre script !
+> N'oubliez pas d'ajouter `using EthanToolBox.Core.Extensions;` à votre script !
 
 #### Transform
 - `t.Reset()` : Réinitialise position, rotation et échelle.
 - `t.DestroyChildren()` : Détruit tous les enfants.
 - `t.DestroyChildrenImmediate()` : Détruit tous les enfants immédiatement (Éditeur).
-- `t.LookAt2D(target)` : Regarde vers la cible (2D).
-- `t.SetPositionX(x)`, `t.SetPositionY(y)`, `t.SetPositionZ(z)` : Modifie un axe de position.
+- `t.LookAt2D(target)` : Pivote pour regarder la cible (2D).
+- `t.SetPositionX(x)`, `t.SetPositionY(y)`, `t.SetPositionZ(z)` : Définit les axes de position individuels.
 - `t.SetLocalScale(scale)` : Définit une échelle uniforme.
 
 #### Vector3
-- `v.WithX(x)`, `v.WithY(y)`, `v.WithZ(z)` : Retourne un vecteur avec un axe modifié.
-- `v.AddX(x)`, `v.AddY(y)`, `v.AddZ(z)` : Ajoute une valeur à un axe.
-- `v.Flat()` : Retourne le vecteur avec Y = 0.
+- `v.WithX(x)`, `v.WithY(y)`, `v.WithZ(z)` : Retourne un vecteur avec l'axe modifié.
+- `v.AddX(x)`, `v.AddY(y)`, `v.AddZ(z)` : Retourne un vecteur avec la valeur ajoutée à l'axe.
+- `v.Flat()` : Retourne un vecteur avec Y = 0.
 - `v.DirectionTo(target)` : Retourne la direction normalisée vers la cible.
 - `v.DistanceTo(target)` : Retourne la distance vers la cible.
-- `v.Closest(list)` : Retourne le vecteur le plus proche dans une liste.
+- `v.Closest(list)` : Retourne le vecteur le plus proche d'une liste.
 
 #### Vector2
-- `v.WithX(x)`, `v.WithY(y)` : Retourne un vecteur avec un axe modifié.
+- `v.WithX(x)`, `v.WithY(y)` : Retourne un vecteur avec l'axe modifié.
 - `v.DirectionTo(target)` : Retourne la direction normalisée vers la cible.
 - `v.DistanceTo(target)` : Retourne la distance vers la cible.
 
 #### GameObject
-- `go.GetOrAddComponent<T>()` : Récupère ou ajoute le composant.
+- `go.GetOrAddComponent<T>()` : Récupère le composant ou l'ajoute s'il manque.
 - `go.HasComponent<T>()` : Vérifie si le composant existe.
-- `go.Show()` : Active le GameObject.
-- `go.Hide()` : Désactive le GameObject.
-- `go.SetLayerRecursive(layer)` : Change le layer de l'objet et ses enfants.
+- `go.Show()` : Active l'objet.
+- `go.Hide()` : Désactive l'objet.
+- `go.SetLayerRecursive(layer)` : Définit le layer pour l'objet et ses enfants.
 
 #### Collections (List/Array)
 - `list.IsNullOrEmpty()` : Vérifie si null ou vide.
 - `list.GetRandom()` : Retourne un élément aléatoire.
-- `list.Shuffle()` : Mélange la liste.
-- `list.AddUnique(item)` : Ajoute l'élément seulement s'il n'est pas déjà présent.
+- `list.Shuffle()` : Mélange la liste (Fisher-Yates).
+- `list.AddUnique(item)` : Ajoute l'élément seulement s'il n'est pas présent.
 - `list.ForEach(action)` : Exécute une action sur chaque élément.
 
 #### Math
-- `val.Remap(min1, max1, min2, max2)` : Remappe une valeur entre deux plages.
-- `val.Snap(interval)` : Arrondit à l'intervalle le plus proche.
-- `val.ToPercent()` : Formate 0-1 en "XX%".
-- `val.SecondsToFormattedString()` : Formate les secondes en "MM:SS".
+- `val.Remap(min1, max1, min2, max2)` : Remappe une valeur entre des plages.
+- `val.Snap(interval)` : "Snap" la valeur à l'intervalle le plus proche.
+- `val.ToPercent()` : Formate un float 0-1 en "XX%".
+- `val.SecondsToFormattedString()` : Formate des secondes en "MM:SS".
 - `int.IsEven()`, `int.IsOdd()` : Vérifie la parité.
 
 #### String
 - `text.Color(color)` : Formate pour la Console Unity (Rich Text).
 - `text.Bold()`, `text.Italic()` : Formate le style.
-- `text.Truncate(length)` : Coupe le texte s'il est trop long.
+- `text.Truncate(length)` : Coupe la chaîne si trop longue.
 - `text.ToInt()`, `text.ToFloat()` : Parsing sécurisé.
 
 #### Color
-- `c.WithAlpha(a)` : Retourne la couleur avec alpha modifié.
-- `c.WithRed(r)`, `c.WithGreen(g)`, `c.WithBlue(b)` : Retourne la couleur avec canal modifié.
-- `c.ToHex()` : Retourne le code hex (ex: "#FF0000").
+- `c.WithAlpha(a)` : Retourne une couleur avec l'alpha modifié.
+- `c.WithRed(r)`, `c.WithGreen(g)`, `c.WithBlue(b)` : Retourne une couleur avec le canal modifié.
+- `c.ToHex()` : Retourne une chaîne hex (ex: "#FF0000").
 
 #### UI (RectTransform)
 - `rt.SetWidth(w)`, `rt.SetHeight(h)` : Définit les dimensions.
-- `rt.SetSize(w, h)` : Définit la taille (sizeDelta).
-- `rt.SetAnchor(x, y)` : Définit les ancres.
+- `rt.SetSize(w, h)` : Définit le size delta.
+- `rt.SetAnchor(x, y)` : Définit les ancres min/max.
 - `rt.SetPivot(x, y)` : Définit le pivot.
 
-#### Physique (Rigidbody)
-- `rb.Stop()` : Met la vélocité à zéro.
+#### Physics (Rigidbody)
+- `rb.Stop()` : Met la vélocité et la vélocité angulaire à zéro.
 
 #### MonoBehaviour
 - `this.Delay(seconds, action)` : Exécute une action après un délai.
