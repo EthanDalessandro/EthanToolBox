@@ -257,7 +257,9 @@ A professional-grade audio system featuring pooling, cross-fading, and a data-dr
 **Step-by-Step Guide:**
 
 #### 1. Setup
-Ensure your scene has the DI system initialized (see "Quick Start"). The `AudioManager` is automatically registered.
+1.  In the Unity Editor, go to **EthanToolBox > Setup Audio Manager**.
+2.  This will automatically create an `AudioManager` GameObject in your scene if one doesn't exist.
+3.  It is automatically registered as a service, so it's ready to be injected immediately.
 
 #### 2. Create Sound Data
 Instead of using raw `AudioClip`s, you create `SoundData` assets.

@@ -257,7 +257,9 @@ Un système audio professionnel incluant pooling, cross-fading, et un workflow b
 **Guide Étape par Étape :**
 
 #### 1. Configuration
-Assurez-vous que le système DI est initialisé dans votre scène (voir "Démarrage Rapide"). L'`AudioManager` est enregistré automatiquement.
+1.  Dans l'éditeur Unity, allez dans **EthanToolBox > Setup Audio Manager**.
+2.  Cela créera automatiquement un GameObject `AudioManager` dans votre scène s'il n'existe pas déjà.
+3.  Il est automatiquement enregistré comme service, il est donc prêt à être injecté immédiatement.
 
 #### 2. Créer un Sound Data
 Au lieu d'utiliser des `AudioClip` bruts, vous créez des assets `SoundData`.
