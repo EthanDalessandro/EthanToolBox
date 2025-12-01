@@ -408,6 +408,27 @@ Useful shortcuts for everyday coding.
 - `mask.Contains(layer)`: Checks if layer is in mask.
 
 
+### Serializable Dictionary
+
+A wrapper to make Dictionaries visible and editable in the Inspector.
+
+**Usage:**
+Replace your standard `Dictionary` with `ESerializableDictionary`.
+
+```csharp
+using EthanToolBox.Core.Extensions;
+
+public class Inventory : MonoBehaviour
+{
+    // This will appear in the Inspector!
+    public ESerializableDictionary<string, int> Items;
+}
+```
+
+> [!NOTE]
+> Unity cannot serialize standard `Dictionary<K,V>` types. You **must** use `ESerializableDictionary<K,V>` for it to show up in the Inspector.
+
+
 ## Requirements
 
 - Unity 2021.3 or higher.

@@ -408,6 +408,27 @@ Des raccourcis utiles pour le code de tous les jours.
 - `mask.Contains(layer)` : Vérifie si le layer est dans le masque.
 
 
+### Dictionnaire Sérialisable (Serializable Dictionary)
+
+Un wrapper pour rendre les Dictionnaires visibles et éditables dans l'Inspecteur.
+
+**Utilisation :**
+Remplacez votre `Dictionary` standard par `ESerializableDictionary`.
+
+```csharp
+using EthanToolBox.Core.Extensions;
+
+public class Inventory : MonoBehaviour
+{
+    // Ceci apparaîtra dans l'Inspecteur !
+    public ESerializableDictionary<string, int> Items;
+}
+```
+
+> [!NOTE]
+> Unity ne peut pas sérialiser les types `Dictionary<K,V>` standards. Vous **devez** utiliser `ESerializableDictionary<K,V>` pour qu'il s'affiche dans l'Inspecteur.
+
+
 ## Prérequis
 
 - Unity 2021.3 ou supérieur.
