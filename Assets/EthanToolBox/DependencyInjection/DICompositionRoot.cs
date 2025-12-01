@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace EthanToolBox.Core.DependencyInjection
 {
@@ -30,49 +32,55 @@ namespace EthanToolBox.Core.DependencyInjection
 
         private void RegisterServices(DIContainer container)
         {
-            // Scan the assembly of the concrete CompositionRoot (the game's assembly)
-            var assembly = this.GetType().Assembly;
-            var types = assembly.GetTypes();
-
-            foreach (var type in types)
+            foreach (var assembly in GetAssembliesToScan())
             {
-                var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<ServiceAttribute>(type);
-                if (attribute != null)
-                {
-                    var serviceType = attribute.ServiceType ?? type;
+                var types = assembly.GetTypes();
 
-                    if (typeof(MonoBehaviour).IsAssignableFrom(type))
+                foreach (var type in types)
+                {
+                    var attribute = type.GetCustomAttribute<ServiceAttribute>();
+                    if (attribute != null)
                     {
-                        // It's a MonoBehaviour, try to find it in the scene
-                        var instance = FindFirstObjectByType(type);
-                        if (instance != null)
+                        var serviceType = attribute.ServiceType ?? type;
+
+                        if (typeof(MonoBehaviour).IsAssignableFrom(type))
                         {
-                            container.RegisterSingleton(serviceType, instance);
+                            // It's a MonoBehaviour, try to find it in the scene
+                            var instance = FindFirstObjectByType(type);
+                            if (instance != null)
+                            {
+                                container.RegisterSingleton(serviceType, instance);
+                            }
+                            else
+                            {
+                                // Optional: Create it if missing? 
+                                // For now, let's create a new GameObject for it.
+                                var go = new GameObject(type.Name);
+                                instance = go.AddComponent(type);
+                                container.RegisterSingleton(serviceType, instance);
+                            }
                         }
                         else
                         {
-                            // Optional: Create it if missing? 
-                            // For now, let's create a new GameObject for it.
-                            var go = new GameObject(type.Name);
-                            instance = go.AddComponent(type);
-                            container.RegisterSingleton(serviceType, instance);
-                        }
-                    }
-                    else
-                    {
-                        // It's a normal class
-                        if (attribute.Lazy)
-                        {
-                            container.RegisterSingleton(serviceType, () => System.Activator.CreateInstance(type));
-                        }
-                        else
-                        {
-                            var instance = System.Activator.CreateInstance(type);
-                            container.RegisterSingleton(serviceType, instance);
+                            // It's a normal class
+                            if (attribute.Lazy)
+                            {
+                                container.RegisterSingleton(serviceType, () => System.Activator.CreateInstance(type));
+                            }
+                            else
+                            {
+                                var instance = System.Activator.CreateInstance(type);
+                                container.RegisterSingleton(serviceType, instance);
+                            }
                         }
                     }
                 }
             }
+        }
+
+        protected virtual IEnumerable<Assembly> GetAssembliesToScan()
+        {
+            yield return this.GetType().Assembly;
         }
 
         protected abstract void Configure(DIContainer container);

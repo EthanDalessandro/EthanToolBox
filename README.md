@@ -51,7 +51,11 @@ sequenceDiagram
 
 **Quick Start:**
 
-1. **Create a Service:**
+1. **Setup DI in Scene:**
+   - In the Unity Editor, go to **EthanToolBox > Setup DI**.
+   - This will automatically create a `DICompositionRoot` GameObject with the `DefaultCompositionRoot` component.
+
+2. **Create a Service:**
    Add the `[Service]` attribute to your class.
    ```csharp
    using EthanToolBox.Core.DependencyInjection;
@@ -63,23 +67,34 @@ sequenceDiagram
    }
    ```
 
-2. **Create an Installer (Composition Root):**
-   Create a script inheriting from `DICompositionRoot` and attach it to a GameObject in your scene.
-   *You don't need to write anything in `Configure` if you use attributes!*
+3. **Inject into a MonoBehaviour:**
+   Add the `[Inject]` attribute to any field you want to populate.
    ```csharp
-   using EthanToolBox.Core.DependencyInjection;
+   public class Player : MonoBehaviour
+   {
+       [Inject] private MyService _myService;
 
+       private void Start()
+       {
+           _myService.DoSomething();
+       }
+   }
+   ```
+
+4. **(Optional) Custom Installer:**
+   If you need specific configuration, you can still inherit from `DICompositionRoot`.
+   ```csharp
    public class GameInstaller : DICompositionRoot
    {
        protected override void Configure(DIContainer container)
        {
-           // Manual registration is optional now!
+           // Manual registration
            // container.RegisterSingleton<OtherService>(new OtherService());
        }
    }
    ```
 
-3. **Inject into a MonoBehaviour:**
+5. **Inject into a MonoBehaviour:**
    Add the `[Inject]` attribute to any field you want to populate.
    ```csharp
    public class Player : MonoBehaviour
