@@ -246,16 +246,75 @@ _bulletPool.Return(bullet);
 
 ### Audio Manager (Gestionnaire Audio)
 
-Un service simple pour gérer la Musique et les Effets Sonores (SFX).
+Un système audio professionnel incluant pooling, cross-fading, et un workflow basé sur les données avec `SoundData`.
 
-**Utilisation :**
+**Fonctionnalités Clés :**
+- **Basé sur les Données :** Tous les réglages (volume, pitch, 3D, aléatoire) sont stockés dans des assets `SoundData`, pas dans le code.
+- **Pooling :** Recycle automatiquement les composants `AudioSource` pour économiser les performances.
+- **Canaux :** Support natif pour les canaux Master, Musique, SFX, UI, et Voix.
+- **Transitions Musicales :** Cross-fading fluide entre les pistes.
+
+**Guide Étape par Étape :**
+
+#### 1. Configuration
+Assurez-vous que le système DI est initialisé dans votre scène (voir "Démarrage Rapide"). L'`AudioManager` est enregistré automatiquement.
+
+#### 2. Créer un Sound Data
+Au lieu d'utiliser des `AudioClip` bruts, vous créez des assets `SoundData`.
+1.  Clic droit dans la **Fenêtre Projet**.
+2.  Allez dans **Create > EthanToolBox > Audio > Sound Data**.
+3.  Nommez le fichier (ex: `Sfx_Jump` ou `Music_Battle`).
+4.  **Réglages dans l'Inspecteur :**
+    - **Clips :** Glissez vos clips audio ici. Si plusieurs sont ajoutés, un sera choisi au hasard.
+    - **Volume/Pitch :** Définissez les valeurs de base.
+    - **Randomization :** Ajoutez de la variance pour rendre les sons naturels (ex: Volume Variance 0.1, Pitch Variance 0.1).
+    - **Spatial Blend :** Mettez à **0 pour 2D** (UI/Musique) ou **1 pour 3D** (Sons du monde).
+
+#### 3. Jouer des Sons dans le Code
+Injectez `IAudioManager` et exposez des champs pour `SoundData`.
+
 ```csharp
-// Enregistrer dans le CompositionRoot
-container.RegisterSingleton<IAudioManager>(audioManagerInstance);
+using UnityEngine;
+using EthanToolBox.Core.DependencyInjection;
+using EthanToolBox.Core.Audio;
 
-// Utiliser dans le code
-_audioManager.PlaySfx(explosionClip);
-_audioManager.PlayMusic(backgroundMusic);
+public class PlayerAudio : MonoBehaviour
+{
+    [Inject] private IAudioManager _audioManager;
+
+    [Header("Assets Audio")]
+    public SoundData JumpSound;       // Assignez 'Sfx_Jump' ici
+    public SoundData FootstepSound;   // Assignez 'Sfx_Footstep' ici
+    public SoundData BackgroundMusic; // Assignez 'Music_Battle' ici
+
+    private void Start()
+    {
+        // Jouer la musique avec une transition de 2 secondes
+        _audioManager.PlayMusic(BackgroundMusic, 2f);
+    }
+
+    public void PlayJump()
+    {
+        // Jouer le son à la position du joueur (important pour les sons 3D)
+        _audioManager.PlaySfx(JumpSound, transform.position);
+    }
+
+    public void PlayFootstep()
+    {
+        // Jouer le son
+        _audioManager.PlaySfx(FootstepSound, transform.position);
+    }
+}
+```
+
+#### 4. Contrôle du Volume Global
+Vous pouvez contrôler le volume pour des canaux spécifiques (ex: pour un menu d'options).
+```csharp
+// Mettre le volume Master à 50%
+_audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
+
+// Couper la Musique
+_audioManager.SetGlobalVolume(AudioChannel.Music, 0f);
 ```
 
 ### Outils UI (UI Tools)
