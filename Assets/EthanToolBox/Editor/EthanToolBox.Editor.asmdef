@@ -2,7 +2,8 @@
     "name": "EthanToolBox.Editor",
     "rootNamespace": "EthanToolBox.Editor",
     "references": [
-        "EthanToolBox"
+        "EthanToolBox",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"
