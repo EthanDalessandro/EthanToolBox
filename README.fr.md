@@ -319,6 +319,16 @@ _audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
 _audioManager.SetGlobalVolume(AudioChannel.Music, 0f);
 ```
 
+#### 5. Avancé : Intégration Audio Mixer
+Pour un contrôle audio professionnel, vous pouvez utiliser l'**Audio Mixer** de Unity.
+
+1.  **Créer un Audio Mixer** dans votre projet (Clic droit > Create > Audio Mixer).
+2.  **Créer des Groupes :** Créez des groupes comme Master, Musique, SFX, UI, Voix.
+3.  **Assigner dans l'AudioManager :** Sélectionnez le GameObject `AudioManager` dans votre scène.
+    - Glissez votre Mixer dans le champ `Audio Mixer`.
+    - Glissez vos Groupes spécifiques dans les champs correspondants (`Master Group`, `Music Group`, etc.).
+4.  **Override dans SoundData :** Par défaut, les sons jouent sur le groupe de leur canal (ex: `PlaySfx` utilise `SfxGroup`). Vous pouvez surcharger cela par son dans l'asset `SoundData` en assignant un `Mixer Group` spécifique.
+
 ### Outils UI (UI Tools)
  
 > [!IMPORTANT]
