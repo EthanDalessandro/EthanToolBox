@@ -441,6 +441,16 @@ public class Inventory : MonoBehaviour
 > Unity cannot serialize standard `Dictionary<K,V>` types. You **must** use `ESerializableDictionary<K,V>` for it to show up in the Inspector.
 
 
+### Scene Switcher Toolbar
+
+A handy dropdown in the Unity Editor toolbar (next to the Play button) to quickly switch between scenes.
+
+**Features:**
+- Lists all scenes in the project.
+- Respects folder hierarchy.
+- Prompts to save changes before switching.
+
+
 ## Requirements
 
 - Unity 2021.3 or higher.
