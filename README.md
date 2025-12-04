@@ -212,6 +212,40 @@ For professional audio control, you can use Unity's **Audio Mixer**.
     - Drag your specific Groups into the corresponding fields (`Master Group`, `Music Group`, etc.).
 4.  **SoundData Override:** By default, sounds play on their channel's group (e.g., `PlaySfx` uses `SfxGroup`). You can override this per-sound in the `SoundData` asset by assigning a specific `Mixer Group`.
 
+### Scene Management
+
+A clean and professional Scene Management system.
+
+**Features:**
+- **Scene Groups:** Define a collection of scenes to load together via a ScriptableObject.
+- **Drag & Drop:** Use `SceneReference` to drag scenes directly into the Inspector.
+- **Synchronous Loading:** Simple API for loading scenes and groups.
+
+**Usage:**
+
+1. **Setup Scene Manager:**
+   - In the Unity Editor, go to **EthanToolBox > Setup Scene Manager**.
+   - This creates a `SceneManager` GameObject with the `SceneLoader` component.
+
+2. **Create a Scene Group:**
+   - Right-click in Project view -> **Create > EthanToolBox > Scene Management > Scene Group**.
+   - Drag and drop your scene assets into the `Scenes` list.
+
+3. **Load Scenes:**
+   ```csharp
+   public class MainMenu : MonoBehaviour
+   {
+       [Inject] private ISceneLoader _sceneLoader;
+       public SceneGroup Level1Group;
+
+       public void OnPlayButtonClicked()
+       {
+           // Load a group of scenes
+           _sceneLoader.LoadSceneGroup(Level1Group);
+       }
+   }
+   ```
+
 
 
 ### Scene Switcher Toolbar
