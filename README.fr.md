@@ -231,6 +231,15 @@ Un menu déroulant pratique dans la barre d'outils de l'éditeur Unity (à côt�
 - Respecte la hiérarchie des dossiers.
 - Demande de sauvegarder les changements avant de changer.
 
+### Indicateur de Script Hiérarchie
+
+Une aide visuelle dans la fenêtre Hiérarchie pour identifier les objets avec des scripts attachés.
+
+**Fonctionnalités :**
+- **Icône de Script :** Affiche une icône de script sur le côté droit de tout GameObject ayant un `MonoBehaviour` personnalisé attaché.
+- **Nombre de Scripts :** Si un objet a plusieurs scripts, un chiffre superposé indique le nombre.
+- **Infobulle :** Passer la souris sur l'icône affiche les noms de tous les scripts attachés.
+
 
 ## Prérequis
 

@@ -257,6 +257,15 @@ A handy dropdown in the Unity Editor toolbar (next to the Play button) to quickl
 - Respects folder hierarchy.
 - Prompts to save changes before switching.
 
+### Hierarchy Script Indicator
+
+A visual aid in the Hierarchy window that helps identify objects with attached scripts.
+
+**Features:**
+- **Script Icon:** Displays a script icon on the right side of any GameObject that has a custom `MonoBehaviour` attached.
+- **Script Count:** If an object has multiple scripts, a number overlay indicates the count.
+- **Tooltip:** Hovering over the icon displays the names of all attached scripts.
+
 
 ## Requirements
 

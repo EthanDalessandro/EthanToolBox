@@ -20,7 +20,12 @@ namespace EthanToolBox.Editor
                 return;
 
             var scripts = gameObject.GetComponents<MonoBehaviour>()
-                .Where(c => c != null && c.GetType() != typeof(Transform))
+                .Where(c => c != null)
+                .Where(c => 
+                {
+                    MonoScript script = MonoScript.FromMonoBehaviour(c);
+                    return script != null && AssetDatabase.GetAssetPath(script).StartsWith("Assets/");
+                })
                 .ToList();
 
             if (scripts.Count > 0)
