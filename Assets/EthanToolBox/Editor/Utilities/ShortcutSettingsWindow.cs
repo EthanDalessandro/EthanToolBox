@@ -52,7 +52,6 @@ namespace EthanToolBox.Editor.Utilities
 
         private string GetScriptPath()
         {
-            // Find the script by type name to handle both local Assets and PackageCache
             string[] guids = AssetDatabase.FindAssets("PlayModeShortcuts t:Script");
             if (guids.Length > 0)
             {
@@ -70,11 +69,6 @@ namespace EthanToolBox.Editor.Utilities
                 return null;
             }
             
-            // If it's in a package (immutable), we might have issues writing to it directly depending on how it's installed.
-            // But for local development or embedded packages, it works.
-            // If installed via git/registry, files in PackageCache are read-only.
-            // However, the user seems to be developing the package itself or importing it locally.
-            
             return File.ReadAllText(path);
         }
 
@@ -83,8 +77,6 @@ namespace EthanToolBox.Editor.Utilities
             string content = ReadScript();
             if (string.IsNullOrEmpty(content)) return;
 
-            // Regex to replace the MenuItem attribute
-            // [MenuItem("EthanToolBox/Shortcuts/Play and Maximize _F5")]
             string pattern = @"\[MenuItem\(""EthanToolBox/Shortcuts/Play and Maximize _F\d+""\)\]";
             string replacement = $"[MenuItem(\"EthanToolBox/Shortcuts/Play and Maximize _{newKey}\")]";
 
