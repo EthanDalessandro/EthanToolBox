@@ -1,29 +1,14 @@
 {
     "name": "EthanToolBox",
     "rootNamespace": "EthanToolBox",
-    "references": [
-        "Unity.TextMeshPro"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [
-        "ETHAN_TMP_PRESENT"
-    ],
-    "versionDefines": [
-        {
-            "name": "com.unity.textmeshpro",
-            "expression": "",
-            "define": "ETHAN_TMP_PRESENT"
-        },
-        {
-            "name": "com.unity.ugui",
-            "expression": "",
-            "define": "ETHAN_TMP_PRESENT"
-        }
-    ],
+    "defineConstraints": [],
+    "versionDefines": [],
     "noEngineReferences": false
 }
