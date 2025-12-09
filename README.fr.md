@@ -249,6 +249,28 @@ Un outil de renommage en masse intégré directement dans la fenêtre Hiérarchi
 - **Renommage en masse :** Renommez plusieurs objets avec un préfixe et un index auto-incrémenté.
 - **Support Undo :** Totalement réversible avec Ctrl+Z.
 
+### Hierarchy Enhancer (Amélioration Hiérarchie)
+
+Une refonte visuelle de la fenêtre Hiérarchie pour améliorer l'organisation et le workflow.
+
+**Fonctionnalités :**
+- **En-têtes :** Renommez n'importe quel GameObject en `[NOM]` (ex: `[SYSTEMES]`) pour créer un séparateur coloré.
+- **Toggles Composants :** Icônes alignées à droite pour les composants (Lumières, Caméras, etc.). Cliquez pour les Activer/Désactiver.
+- **Gestion des Scripts :**
+  - Les scripts standards affichent une icône.
+  - Plusieurs scripts sont regroupés en une seule icône. Cliquez pour ouvrir un menu et désactiver des scripts spécifiques.
+- **Sélecteur de Layer :** Changez rapidement de Layer directement depuis la ligne de la Hiérarchie.
+
+### Inspector Component Toggler (Toggle Inspecteur)
+
+Une barre utilitaire injectée en haut de l'Inspecteur pour gérer la visibilité des composants.
+
+**Fonctionnalités :**
+- **Grille d'icônes :** Affiche les icônes de tous les composants attachés en haut de l'Inspecteur.
+- **Visibilité Toggle :** Cliquez sur une icône pour cacher l'interface du composant (le replier complètement) pour gagner de l'espace. Le composant reste actif.
+- **Auto-Refresh :** Se met à jour automatiquement lorsque des composants sont ajoutés ou supprimés.
+
+
 
 
 ## Prérequis

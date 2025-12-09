@@ -275,6 +275,28 @@ A bulk rename tool integrated directly into the Hierarchy window.
 - **Bulk Rename:** Rename multiple objects with a prefix and auto-incrementing index.
 - **Undo Support:** Fully reversible with Ctrl+Z.
 
+### Hierarchy Enhancer
+
+A visual overhaul for the Hierarchy window to improve organization and workflow.
+
+**Features:**
+- **Headers:** Rename any GameObject to `[NAME]` (e.g., `[SYSTEMS]`) to create a colored header separator.
+- **Component Toggles:** Right-aligned icons for components (Lights, Cameras, etc.). Click to toggle them On/Off.
+- **Script Management:** 
+  - Standard scripts show an icon. 
+  - Multiple scripts are grouped into a single icon. Click to open a menu to toggle specific scripts.
+- **Layer Selector:** Quickly switch layers directly from the Hierarchy row.
+
+### Inspector Component Toggler
+
+A utility bar injected at the top of the Inspector window to manage component visibility.
+
+**Features:**
+- **Grid Layout:** Displays icons for all attached components at the top of the Inspector.
+- **Toggle Visibility:** Click an icon to hide the component's UI (folding it away completely) to save scrolling space. The component remains active.
+- **Auto-Refresh:** Automatically updates when components are added or removed.
+
+
 
 
 ## Requirements
