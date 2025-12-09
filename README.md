@@ -266,6 +266,16 @@ A visual aid in the Hierarchy window that helps identify objects with attached s
 - **Script Count:** If an object has multiple scripts, a number overlay indicates the count.
 - **Tooltip:** Hovering over the icon displays the names of all attached scripts.
 
+### Hierarchy Renamer Overlay
+
+A bulk rename tool integrated directly into the Hierarchy window.
+
+**Features:**
+- **Overlay UI:** Appears automatically in the bottom-right of the Hierarchy when multiple specific objects are selected.
+- **Bulk Rename:** Rename multiple objects with a prefix and auto-incrementing index.
+- **Undo Support:** Fully reversible with Ctrl+Z.
+
+
 
 ## Requirements
 

@@ -240,6 +240,16 @@ Une aide visuelle dans la fenêtre Hiérarchie pour identifier les objets avec d
 - **Nombre de Scripts :** Si un objet a plusieurs scripts, un chiffre superposé indique le nombre.
 - **Infobulle :** Passer la souris sur l'icône affiche les noms de tous les scripts attachés.
 
+### Hierarchy Renamer Overlay (Renommage Hiérarchie)
+
+Un outil de renommage en masse intégré directement dans la fenêtre Hiérarchie.
+
+**Fonctionnalités :**
+- **Interface Overlay :** Apparaît automatiquement en bas à droite de la Hiérarchie lorsque plusieurs objets sont sélectionnés.
+- **Renommage en masse :** Renommez plusieurs objets avec un préfixe et un index auto-incrémenté.
+- **Support Undo :** Totalement réversible avec Ctrl+Z.
+
+
 
 ## Prérequis
 
