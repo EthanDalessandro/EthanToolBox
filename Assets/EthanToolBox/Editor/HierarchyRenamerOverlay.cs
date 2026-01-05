@@ -5,6 +5,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace EthanToolBox.Editor
 {
@@ -28,33 +29,37 @@ namespace EthanToolBox.Editor
 
         private static void OnSelectionChanged()
         {
-            var selectedObjects = Selection.gameObjects;
-            bool shouldShow = selectedObjects.Length > 1;
+            GameObject[] selectedObjects = Selection.gameObjects;
 
-            if (shouldShow && !isOverlayVisible)
+            switch (selectedObjects.Length > 1)
             {
-                ShowOverlay();
-            }
-            else if (!shouldShow && isOverlayVisible)
-            {
-                HideOverlay();
+                case true when !isOverlayVisible:
+                    ShowOverlay();
+                    break;
+                case false when isOverlayVisible:
+                    HideOverlay();
+                    break;
             }
         }
-
+        
+        /// <summary>
+        /// Locates the internal Hierarchy window via Reflection and injects the renaming overlay into its root VisualElement.
+        /// Ensures the overlay is instantiated and sets its display style to Flex.
+        /// </summary>
         private static void ShowOverlay()
         {
-            var hierarchyWindowType = typeof(EditorWindow).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
-            var windows = Resources.FindObjectsOfTypeAll(hierarchyWindowType);
+            Type hierarchyWindowType = typeof(EditorWindow).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
+            Object[] windows = Resources.FindObjectsOfTypeAll(hierarchyWindowType);
 
             if (windows.Length == 0) return;
 
-            var window = windows[0] as EditorWindow;
+            EditorWindow window = windows[0] as EditorWindow;
             if (window == null) return;
 
-            var rootInfo = window.GetType().GetProperty("rootVisualElement", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            PropertyInfo rootInfo = window.GetType().GetProperty("rootVisualElement", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             if (rootInfo == null) return;
 
-            var root = window.rootVisualElement;
+            VisualElement root = window.rootVisualElement;
 
             if (root == null) return;
 
@@ -68,7 +73,7 @@ namespace EthanToolBox.Editor
                 root.Add(overlayContainer);
             }
 
-            overlayContainer.style.display = DisplayStyle.Flex;
+            if (overlayContainer != null) overlayContainer.style.display = DisplayStyle.Flex;
             isOverlayVisible = true;
         }
 
@@ -83,46 +88,57 @@ namespace EthanToolBox.Editor
 
         private static void CreateOverlay()
         {
-            overlayContainer = new VisualElement();
-            overlayContainer.style.position = Position.Absolute;
-            overlayContainer.style.bottom = 10;
-            overlayContainer.style.right = 20;
-            overlayContainer.style.backgroundColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f, 0.9f));
-            overlayContainer.style.borderTopLeftRadius = 5;
-            overlayContainer.style.borderTopRightRadius = 5;
-            overlayContainer.style.borderBottomLeftRadius = 5;
-            overlayContainer.style.borderBottomRightRadius = 5;
-            overlayContainer.style.paddingTop = 5;
-            overlayContainer.style.paddingBottom = 5;
-            overlayContainer.style.paddingLeft = 5;
-            overlayContainer.style.paddingRight = 5;
-            overlayContainer.style.borderTopWidth = 1;
-            overlayContainer.style.borderBottomWidth = 1;
-            overlayContainer.style.borderLeftWidth = 1;
-            overlayContainer.style.borderRightWidth = 1;
-            overlayContainer.style.borderTopColor = new StyleColor(Color.black);
-            overlayContainer.style.borderBottomColor = new StyleColor(Color.black);
-            overlayContainer.style.borderLeftColor = new StyleColor(Color.black);
-            overlayContainer.style.borderRightColor = new StyleColor(Color.black);
-            overlayContainer.style.flexDirection = FlexDirection.Row;
-            overlayContainer.style.alignItems = Align.Center;
+            overlayContainer = new VisualElement
+            {
+                style =
+                {
+                    position = Position.Absolute,
+                    bottom = 10,
+                    right = 20,
+                    backgroundColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f, 0.9f)),
+                    borderTopLeftRadius = 5,
+                    borderTopRightRadius = 5,
+                    borderBottomLeftRadius = 5,
+                    borderBottomRightRadius = 5,
+                    paddingTop = 5,
+                    paddingBottom = 5,
+                    paddingLeft = 5,
+                    paddingRight = 5,
+                    borderTopWidth = 1,
+                    borderBottomWidth = 1,
+                    borderLeftWidth = 1,
+                    borderRightWidth = 1,
+                    borderTopColor = new StyleColor(Color.black),
+                    borderBottomColor = new StyleColor(Color.black),
+                    borderLeftColor = new StyleColor(Color.black),
+                    borderRightColor = new StyleColor(Color.black),
+                    flexDirection = FlexDirection.Row,
+                    alignItems = Align.Center
+                }
+            };
 
-            prefixField = new TextField();
-            prefixField.value = prefix;
+            prefixField = new TextField
+            {
+                value = prefix
+            };
             prefixField.RegisterValueChangedCallback(evt => prefix = evt.newValue);
             prefixField.style.width = 100;
             prefixField.style.marginRight = 5;
             overlayContainer.Add(prefixField);
 
-            startIndexField = new IntegerField();
-            startIndexField.value = startIndex;
+            startIndexField = new IntegerField
+            {
+                value = startIndex
+            };
             startIndexField.RegisterValueChangedCallback(evt => startIndex = evt.newValue);
             startIndexField.style.width = 40;
             startIndexField.style.marginRight = 5;
             overlayContainer.Add(startIndexField);
 
-            renameButton = new Button(RenameSelectedObjects);
-            renameButton.text = "Rename";
+            renameButton = new Button(RenameSelectedObjects)
+            {
+                text = "Rename"
+            };
             overlayContainer.Add(renameButton);
         }
 
@@ -132,8 +148,7 @@ namespace EthanToolBox.Editor
 
             if (selectedObjects.Length < 1) return;
 
-            // Sort by sibling index
-            var sortedObjects = selectedObjects.OrderBy(go => go.transform.GetSiblingIndex()).ToArray();
+            GameObject[] sortedObjects = selectedObjects.OrderBy(go => go.transform.GetSiblingIndex()).ToArray();
 
             Undo.RecordObjects(sortedObjects, "Bulk Rename Objects");
 

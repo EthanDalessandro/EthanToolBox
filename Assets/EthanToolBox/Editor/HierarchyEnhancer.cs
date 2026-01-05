@@ -8,8 +8,8 @@ namespace EthanToolBox.Editor
     [InitializeOnLoad]
     public class HierarchyEnhancer
     {
-        private static readonly Color headerColor = new Color(0.2f, 0.2f, 0.2f, 1f);
-        private static readonly Color headerTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        private static readonly Color headerColor = new(0.2f, 0.2f, 0.2f, 1f);
+        private static readonly Color headerTextColor = new(0.8f, 0.8f, 0.8f, 1f);
 
         static HierarchyEnhancer()
         {
@@ -18,7 +18,7 @@ namespace EthanToolBox.Editor
 
         private static void HandleHierarchyWindowItemOnGUI(int instanceID, Rect selectionRect)
         {
-            var obj = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
+            GameObject obj = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
             if (obj == null) return;
 
             // 1. Headers: [NAME]
@@ -45,9 +45,14 @@ namespace EthanToolBox.Editor
             EditorGUI.DrawRect(rect, color);
 
             // Centered Text
-            var style = new GUIStyle(EditorStyles.boldLabel);
-            style.alignment = TextAnchor.MiddleCenter;
-            style.normal.textColor = Color.white;
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                normal =
+                {
+                    textColor = Color.white
+                }
+            };
 
             EditorGUI.LabelField(rect, name.ToUpper(), style);
         }
@@ -66,8 +71,13 @@ namespace EthanToolBox.Editor
             Rect layerRect = new Rect(currentX - layerWidth, rect.y, layerWidth, height);
             currentX -= layerWidth;
 
-            GUIStyle layerStyle = new GUIStyle(EditorStyles.miniLabel);
-            layerStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            GUIStyle layerStyle = new GUIStyle(EditorStyles.miniLabel)
+            {
+                normal =
+                {
+                    textColor = new Color(0.7f, 0.7f, 0.7f, 1f)
+                }
+            };
 
             if (GUI.Button(layerRect, layerContent, layerStyle))
             {
@@ -77,17 +87,14 @@ namespace EthanToolBox.Editor
             currentX -= 5;
 
             // --- Components ---
-            var allComponents = obj.GetComponents<Component>().ToList();
+            List<Component> allComponents = obj.GetComponents<Component>().ToList();
 
-            // 1. Separate "Unity/Standard" components from "User Scripts"
-            // Simple heuristic: If it is in UnityEngine namespace and not a MonoBehaviour (usually), it's standard.
-            // But many standard comps are behaviours (Animators, UI).
-            // Let's rely on specific types we want to show individually vs "Scripts".
+            // 1. Separate "Unity/Standard" components from "Personal Scripts"
+            
+            List<Component> standardComponents = new List<Component>();
+            List<MonoBehaviour> scriptComponents = new List<MonoBehaviour>();
 
-            var standardComponents = new List<Component>();
-            var scriptComponents = new List<MonoBehaviour>();
-
-            foreach (var comp in allComponents)
+            foreach (Component comp in allComponents)
             {
                 if (comp == null || comp is Transform || comp is RectTransform || comp is CanvasRenderer) continue;
 
@@ -121,7 +128,7 @@ namespace EthanToolBox.Editor
 
                 bool anyEnabled = scriptComponents.Any(s => s.enabled);
                 Color iconColor = anyEnabled ? Color.white : new Color(1, 1, 1, 0.4f);
-                var oldColor = GUI.color;
+                Color oldColor = GUI.color;
                 GUI.color = iconColor;
 
                 if (GUI.Button(iconRect, new GUIContent(scriptIcon, "Scripts"), GUIStyle.none))
@@ -139,10 +146,15 @@ namespace EthanToolBox.Editor
 
                 if (scriptComponents.Count > 1)
                 {
-                    GUIStyle countStyle = new GUIStyle(EditorStyles.miniLabel);
-                    countStyle.fontSize = 10;
-                    countStyle.normal.textColor = Color.black;
-                    countStyle.alignment = TextAnchor.LowerRight;
+                    GUIStyle countStyle = new GUIStyle(EditorStyles.miniLabel)
+                    {
+                        fontSize = 10,
+                        normal =
+                        {
+                            textColor = Color.black
+                        },
+                        alignment = TextAnchor.LowerRight
+                    };
                     Rect countRect = new Rect(iconRect.x, iconRect.y, iconRect.width + 2, iconRect.height);
                     GUI.Label(countRect, scriptComponents.Count.ToString(), countStyle);
                 }
@@ -150,7 +162,7 @@ namespace EthanToolBox.Editor
                 currentX -= 2;
             }
 
-            foreach (var comp in standardComponents.Reverse<Component>())
+            foreach (Component comp in standardComponents.Reverse<Component>())
             {
                 Texture icon = AssetPreview.GetMiniThumbnail(comp);
                 if (icon == null) continue;
@@ -161,7 +173,7 @@ namespace EthanToolBox.Editor
 
                 bool isEnabled = IsEnabled(comp);
                 Color iconColor = isEnabled ? Color.white : new Color(1, 1, 1, 0.4f);
-                var oldColor = GUI.color;
+                Color oldColor = GUI.color;
                 GUI.color = iconColor;
 
                 if (GUI.Button(iconRect, new GUIContent(icon, comp.GetType().Name), GUIStyle.none))
@@ -177,15 +189,15 @@ namespace EthanToolBox.Editor
 
             float toggleSize = height;
             Rect activeRect = new Rect(currentX - toggleSize - 5, rect.y, toggleSize, height);
-            if (activeRect.x > rect.x + 100)
-            {
-                var eyeIcon = EditorGUIUtility.IconContent(obj.activeSelf ? "d_scenevis_visible_hover" : "d_scenevis_hidden_hover").image;
-                if (GUI.Button(activeRect, new GUIContent(eyeIcon, "Toggle Active"), GUIStyle.none))
-                {
-                    Undo.RecordObject(obj, "Toggle Active");
-                    obj.SetActive(!obj.activeSelf);
-                }
-            }
+            
+            if (!(activeRect.x > rect.x + 100)) return;
+            
+            Texture eyeIcon = EditorGUIUtility.IconContent(obj.activeSelf ? "d_scenevis_visible_hover" : "d_scenevis_hidden_hover").image;
+            
+            if (!GUI.Button(activeRect, new GUIContent(eyeIcon, "Toggle Active"), GUIStyle.none)) return;
+            
+            Undo.RecordObject(obj, "Toggle Active");
+            obj.SetActive(!obj.activeSelf);
         }
 
         private static bool IsStandardUnityType(System.Type type)
@@ -196,7 +208,7 @@ namespace EthanToolBox.Editor
         private static void ShowScriptMenu(List<MonoBehaviour> scripts)
         {
             GenericMenu menu = new GenericMenu();
-            foreach (var script in scripts)
+            foreach (MonoBehaviour script in scripts)
             {
                 string name = script.GetType().Name;
                 menu.AddItem(new GUIContent(name), script.enabled, () =>
