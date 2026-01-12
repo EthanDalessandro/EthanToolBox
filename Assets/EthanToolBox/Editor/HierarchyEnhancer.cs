@@ -64,7 +64,7 @@ namespace EthanToolBox.Editor
 
             // --- Layer Selector ---
             string layerName = LayerMask.LayerToName(obj.layer);
-            GUIContent layerContent = new GUIContent($"Layer: {layerName}");
+            GUIContent layerContent = new GUIContent($"{layerName}");
             float layerWidth = EditorStyles.miniLabel.CalcSize(layerContent).x + 5;
             if (layerWidth > 100) layerWidth = 100;
 
