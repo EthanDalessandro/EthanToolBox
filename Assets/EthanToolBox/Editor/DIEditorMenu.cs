@@ -20,7 +20,7 @@ namespace EthanToolBox.Editor
             go.AddComponent<DefaultCompositionRoot>();
             Undo.RegisterCreatedObjectUndo(go, "Create DI Composition Root");
             Selection.activeGameObject = go;
-            
+
             Debug.Log("DI Composition Root created.");
         }
     }

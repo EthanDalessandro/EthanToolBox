@@ -49,6 +49,18 @@ namespace EthanToolBox.Core.Audio
             source.Stop();
             source.clip = null;
             source.outputAudioMixerGroup = null;
+
+            // Reset all properties to defaults to avoid state bleeding between uses
+            source.loop = false;
+            source.pitch = 1f;
+            source.volume = 1f;
+            source.spatialBlend = 0f;
+            source.dopplerLevel = 1f;
+            source.minDistance = 1f;
+            source.maxDistance = 500f;
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            source.priority = 128;
+
             source.gameObject.SetActive(false);
             _pool.Enqueue(source);
         }

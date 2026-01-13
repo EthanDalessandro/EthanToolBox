@@ -22,7 +22,7 @@ namespace EthanToolBox.Core.Audio
         private AudioSource _musicSource1;
         private AudioSource _musicSource2;
         private bool _isMusicSource1Playing = false;
-        
+
         private Dictionary<AudioChannel, float> _volumes = new Dictionary<AudioChannel, float>();
         private List<AudioSource> _activeSfxSources = new List<AudioSource>();
 
@@ -91,9 +91,12 @@ namespace EthanToolBox.Core.Audio
         {
             if (data == null) return;
 
+            var clip = data.GetClip();
+            if (clip == null) return;
+
             var source = _pool.Get();
             ConfigureSource(source, data, _sfxGroup);
-            
+
             // If position is default (0,0,0) and spatial blend is 0 (2D), we don't need to move it.
             // But if it's 3D, we move it.
             if (data.SpatialBlend > 0)
@@ -103,7 +106,7 @@ namespace EthanToolBox.Core.Audio
             else
             {
                 // Attach to manager for 2D sounds to avoid being left behind
-                source.transform.position = transform.position; 
+                source.transform.position = transform.position;
             }
 
             source.Play();
@@ -114,7 +117,7 @@ namespace EthanToolBox.Core.Audio
         public void PlayUi(SoundData data)
         {
             if (data == null) return;
-            
+
             // UI sounds are usually 2D and ignore spatial settings often, but we respect SoundData
             var source = _pool.Get();
             ConfigureSource(source, data, _uiGroup);
@@ -170,7 +173,7 @@ namespace EthanToolBox.Core.Audio
             source.maxDistance = data.MaxDistance;
             source.rolloffMode = data.RolloffMode;
             source.priority = data.Priority;
-            
+
             source.outputAudioMixerGroup = data.MixerGroup != null ? data.MixerGroup : defaultGroup;
         }
 
@@ -183,7 +186,7 @@ namespace EthanToolBox.Core.Audio
             // Let's simplify: All SFX use SFX volume, UI uses UI volume.
             // But here we don't know if it was called via PlaySfx or PlayUi easily without passing it.
             // Let's assume Master volume affects everything.
-            return _volumes[AudioChannel.Master]; 
+            return _volumes[AudioChannel.Master];
             // Real implementation would multiply by _volumes[AudioChannel.Sfx] if it's an SFX.
             // To fix this, we should pass the channel volume to ConfigureSource.
         }
@@ -221,7 +224,7 @@ namespace EthanToolBox.Core.Audio
 
                 if (fadingOut.isPlaying)
                     fadingOut.volume = Mathf.Lerp(startVol, 0f, t);
-                
+
                 fadingIn.volume = Mathf.Lerp(0f, targetVol, t);
 
                 yield return null;
@@ -252,19 +255,19 @@ namespace EthanToolBox.Core.Audio
         {
             // If using AudioMixer, we would set exposed parameters here.
             // _audioMixer.SetFloat("MasterVolume", LogVolume(_volumes[AudioChannel.Master]));
-            
+
             // Since we are doing manual volume control on AudioSources for this implementation (to be dependency-free from a specific Mixer asset):
             if (_musicSource1.isPlaying) _musicSource1.volume = _musicSource1.volume * _volumes[AudioChannel.Master] * _volumes[AudioChannel.Music]; // This is tricky because we lose the original volume.
-            // A better way is to store "BaseVolume" on the source or recalculate.
-            // For simplicity in this "Complete" but "Lightweight" version, we might just accept that changing global volume affects *next* plays or requires iterating all active sources.
-            
+                                                                                                                                                     // A better way is to store "BaseVolume" on the source or recalculate.
+                                                                                                                                                     // For simplicity in this "Complete" but "Lightweight" version, we might just accept that changing global volume affects *next* plays or requires iterating all active sources.
+
             // Update active SFX
-            foreach(var source in _activeSfxSources)
+            foreach (var source in _activeSfxSources)
             {
-                if(source != null && source.isPlaying)
+                if (source != null && source.isPlaying)
                 {
                     // Re-apply volume (simplified)
-                    source.volume = source.volume * _volumes[AudioChannel.Master]; 
+                    source.volume = source.volume * _volumes[AudioChannel.Master];
                 }
             }
         }
