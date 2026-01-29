@@ -16,6 +16,7 @@ namespace EthanToolBox.Editor
         private static int lastComponentHash = 0;
         private static int lastSelectionID = 0;
         private static Component focusedComponent = null;
+        public static Component copiedComponent = null;
         private static HashSet<ComponentCategory> activeFilters = new HashSet<ComponentCategory>();
 
         public enum ComponentCategory
@@ -49,6 +50,7 @@ namespace EthanToolBox.Editor
             EditorApplication.update += OnUpdate;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
         }
+
 
         private static ComponentCategory GetComponentCategory(Component comp)
         {
@@ -273,14 +275,18 @@ namespace EthanToolBox.Editor
             {
                 if (comp == null) continue;
 
+                // Container pour l'icône + bouton de copie
+                var compContainer = new VisualElement();
+                compContainer.style.flexDirection = FlexDirection.Row;
+                compContainer.style.marginRight = 4;
+                compContainer.style.marginBottom = 2;
+
                 Texture icon = AssetPreview.GetMiniThumbnail(comp);
                 if (icon == null) icon = EditorGUIUtility.IconContent("cs Script Icon").image;
 
                 var btn = new Button();
                 btn.style.width = 24;
                 btn.style.height = 24;
-                btn.style.marginRight = 2;
-                btn.style.marginBottom = 2;
                 btn.style.backgroundImage = (Texture2D)icon;
                 btn.style.borderTopLeftRadius = 3;
                 btn.style.borderTopRightRadius = 3;
@@ -289,6 +295,7 @@ namespace EthanToolBox.Editor
 
                 bool isHidden = (comp.hideFlags & HideFlags.HideInInspector) != 0;
                 bool isFocused = focusedComponent == comp;
+                bool isCopied = copiedComponent == comp;
                 var category = GetComponentCategory(comp);
 
                 if (isFocused)
@@ -302,6 +309,17 @@ namespace EthanToolBox.Editor
                     btn.style.borderLeftColor = new StyleColor(Color.cyan);
                     btn.style.borderRightColor = new StyleColor(Color.cyan);
                 }
+                else if (isCopied)
+                {
+                    btn.style.borderTopWidth = 2;
+                    btn.style.borderBottomWidth = 2;
+                    btn.style.borderLeftWidth = 2;
+                    btn.style.borderRightWidth = 2;
+                    btn.style.borderTopColor = new StyleColor(Color.green);
+                    btn.style.borderBottomColor = new StyleColor(Color.green);
+                    btn.style.borderLeftColor = new StyleColor(Color.green);
+                    btn.style.borderRightColor = new StyleColor(Color.green);
+                }
                 else if (categoryColors.ContainsKey(category))
                 {
                     btn.style.borderBottomWidth = 2;
@@ -312,21 +330,31 @@ namespace EthanToolBox.Editor
 
                 string tooltip = $"{comp.GetType().Name} [{category}]";
                 if (isHidden) tooltip += " (Hidden)";
+                if (isCopied) tooltip += " (Copied)";
+                tooltip += "\nClic gauche = toggle visibilité";
                 tooltip += "\nClic droit = focus";
+                tooltip += "\nClic molette = copy component";
                 btn.tooltip = tooltip;
 
                 Component currentComp = comp;
                 btn.clicked += () => ToggleVisibility(currentComp);
                 btn.RegisterCallback<MouseDownEvent>(evt =>
                 {
-                    if (evt.button == 1)
+                    if (evt.button == 1) // Clic droit
                     {
                         evt.StopPropagation();
                         FocusOnComponent(currentComp);
                     }
+                    else if (evt.button == 2) // Clic molette
+                    {
+                        evt.StopPropagation();
+                        CopyComponent(currentComp);
+                        RefreshUI(go);
+                    }
                 });
 
-                iconsContainer.Add(btn);
+                compContainer.Add(btn);
+                iconsContainer.Add(compContainer);
             }
         }
 
@@ -495,6 +523,31 @@ namespace EthanToolBox.Editor
             InternalEditorUtility.RepaintAllViews();
             ActiveEditorTracker.sharedTracker.ForceRebuild();
             RefreshUI(comp.gameObject);
+        }
+
+        public static void CopyComponent(Component comp)
+        {
+            if (comp == null) return;
+
+            ComponentUtility.CopyComponent(comp);
+            copiedComponent = comp;
+        }
+
+        public static void PasteComponentValues(Component targetComp)
+        {
+            if (targetComp == null || copiedComponent == null) return;
+
+            Undo.RegisterCompleteObjectUndo(targetComp, "Paste Component Values");
+            ComponentUtility.PasteComponentValues(targetComp);
+        }
+
+        public static void PasteComponentAsNew(GameObject go)
+        {
+            if (go == null || copiedComponent == null) return;
+
+            Undo.RegisterCompleteObjectUndo(go, "Paste Component As New");
+            ComponentUtility.PasteComponentAsNew(go);
+            RefreshUI(go);
         }
     }
 }

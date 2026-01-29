@@ -173,30 +173,6 @@ namespace EthanToolBox.Editor
                 ShowLayerMenu(obj);
             }
 
-            // 2. Icône du composant principal cliquable
-            Component mainComp = GetMainComponent(obj);
-            if (mainComp != null)
-            {
-                float iconSize = height;
-                Rect iconRect = new Rect(currentX - iconSize, rect.y, iconSize, height);
-                currentX -= iconSize + 2;
-
-                Texture icon = AssetPreview.GetMiniThumbnail(mainComp);
-                if (icon != null)
-                {
-                    bool isEnabled = IsEnabled(mainComp);
-                    Color oldColor = GUI.color;
-                    GUI.color = isEnabled ? Color.white : new Color(1, 1, 1, 0.4f);
-
-                    if (GUI.Button(iconRect, new GUIContent(icon, mainComp.GetType().Name + " (Click to toggle)"), GUIStyle.none))
-                    {
-                        ToggleComponent(mainComp);
-                    }
-
-                    GUI.color = oldColor;
-                }
-            }
-
             // 4. Dessiner les lignes de connexion avec couleurs par profondeur
             if (depth > 0)
             {
