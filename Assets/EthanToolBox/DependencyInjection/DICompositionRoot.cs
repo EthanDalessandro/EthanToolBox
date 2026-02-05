@@ -7,6 +7,9 @@ namespace EthanToolBox.Core.DependencyInjection
     [DefaultExecutionOrder(-1000)]
     public abstract class DICompositionRoot : MonoBehaviour
     {
+        public static Injector Instance { get; private set; }
+        private static HashSet<int> _injectedInstances = new HashSet<int>();
+
         protected DIContainer Container;
         protected Injector Injector;
 
@@ -14,20 +17,41 @@ namespace EthanToolBox.Core.DependencyInjection
         {
             Container = new DIContainer();
             Injector = new Injector(Container);
+            Instance = Injector;
+            _injectedInstances.Clear();
 
             Configure(Container);
             RegisterServices(Container);
 
-            // Inject into all MonoBehaviours in the scene (optional, but useful for auto-injection)
-            // For better performance, you might want to manually register objects to inject.
-            var allMonoBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            // Inject into all MonoBehaviours in the scene
+            var allMonoBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var mb in allMonoBehaviours)
             {
-                // Skip the CompositionRoot itself to avoid circular issues or double init if not careful
                 if (mb == this) continue;
-
-                Injector.Inject(mb);
+                InjectAndTrack(mb);
             }
+        }
+
+        /// <summary>
+        /// Call this from OnEnable to request late injection.
+        /// Safe to call multiple times - will only inject once.
+        /// </summary>
+        public static void RequestInjection(MonoBehaviour target)
+        {
+            if (Instance == null || target == null) return;
+
+            int id = target.GetInstanceID();
+            if (!_injectedInstances.Contains(id))
+            {
+                Instance.Inject(target);
+                _injectedInstances.Add(id);
+            }
+        }
+
+        private static void InjectAndTrack(MonoBehaviour mb)
+        {
+            Instance.Inject(mb);
+            _injectedInstances.Add(mb.GetInstanceID());
         }
 
         private void RegisterServices(DIContainer container)
@@ -45,7 +69,6 @@ namespace EthanToolBox.Core.DependencyInjection
 
                         if (typeof(MonoBehaviour).IsAssignableFrom(type))
                         {
-                            // It's a MonoBehaviour, try to find it in the scene
                             var instance = FindFirstObjectByType(type, FindObjectsInactive.Include);
                             if (instance != null)
                             {
@@ -53,8 +76,6 @@ namespace EthanToolBox.Core.DependencyInjection
                             }
                             else
                             {
-                                // Optional: Create it if missing? 
-                                // For now, let's create a new GameObject for it.
                                 var go = new GameObject(type.Name);
                                 instance = go.AddComponent(type);
                                 container.RegisterSingleton(serviceType, instance);
@@ -62,7 +83,6 @@ namespace EthanToolBox.Core.DependencyInjection
                         }
                         else
                         {
-                            // It's a normal class
                             if (attribute.Lazy)
                             {
                                 container.RegisterSingleton(serviceType, () => System.Activator.CreateInstance(type));
@@ -86,3 +106,5 @@ namespace EthanToolBox.Core.DependencyInjection
         protected abstract void Configure(DIContainer container);
     }
 }
+
+
