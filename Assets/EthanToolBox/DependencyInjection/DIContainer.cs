@@ -7,6 +7,12 @@ namespace EthanToolBox.Core.DependencyInjection
     public class DIContainer
     {
         private readonly Dictionary<Type, Func<object>> _registrations = new Dictionary<Type, Func<object>>();
+        private readonly DIContainer _parentContainer;
+
+        public DIContainer(DIContainer parent = null)
+        {
+            _parentContainer = parent;
+        }
         
 #if UNITY_EDITOR
         // --- Editor Data ---
@@ -93,6 +99,8 @@ namespace EthanToolBox.Core.DependencyInjection
             _registrations[serviceType] = () => instance;
         }
 
+
+
         public object Resolve(Type serviceType)
         {
             if (_registrations.TryGetValue(serviceType, out var factory))
@@ -113,6 +121,12 @@ namespace EthanToolBox.Core.DependencyInjection
 #endif
             }
 
+            if (_parentContainer != null)
+            {
+                // We don't track parent dependencies in this container's graph/profiler to avoid duplication/confusion
+                return _parentContainer.Resolve(serviceType);
+            }
+
             throw new Exception($"Service of type {serviceType.Name} is not registered.");
         }
 
@@ -131,7 +145,7 @@ namespace EthanToolBox.Core.DependencyInjection
 
         public bool IsRegistered(Type serviceType)
         {
-            return _registrations.ContainsKey(serviceType);
+            return _registrations.ContainsKey(serviceType) || (_parentContainer != null && _parentContainer.IsRegistered(serviceType));
         }
 
         /// <summary>
@@ -169,6 +183,12 @@ namespace EthanToolBox.Core.DependencyInjection
                 return true;
 #endif
             }
+            
+            if (_parentContainer != null)
+            {
+                return _parentContainer.TryResolve(serviceType, out service);
+            }
+
             service = null;
             return false;
         }
@@ -214,6 +234,25 @@ namespace EthanToolBox.Core.DependencyInjection
             }
             return null;
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// DEBUG ONLY: Replaces the registered service with a new instance.
+        /// Warning: Already injected dependencies will NOT be updated. Only new resolutions will use this.
+        /// </summary>
+        public void HotSwap(Type serviceType, object newInstance)
+        {
+            if (newInstance != null && !serviceType.IsAssignableFrom(newInstance.GetType()))
+            {
+                UnityEngine.Debug.LogError($"[DI] HotSwap failed: {newInstance.GetType().Name} is not assignable to {serviceType.Name}");
+                return;
+            }
+
+            // We overwrite the factory to return the new instance
+            _registrations[serviceType] = () => newInstance;
+            UnityEngine.Debug.Log($"[DI] Hot Swapped service {serviceType.Name} with new instance.");
+        }
+#endif
     }
 }
 

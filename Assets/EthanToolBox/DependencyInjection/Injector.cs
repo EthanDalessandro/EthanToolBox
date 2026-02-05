@@ -91,6 +91,12 @@ namespace EthanToolBox.Core.DependencyInjection
                 return;
             }
 
+            if (IsFactory(field.FieldType, out var factoryType))
+            {
+                field.SetValue(target, CreateFactory(factoryType));
+                return;
+            }
+
             if (_container.TryResolve(field.FieldType, out var service))
             {
                 field.SetValue(target, service);
@@ -107,6 +113,12 @@ namespace EthanToolBox.Core.DependencyInjection
             if (IsLazy(property.PropertyType, out var serviceType))
             {
                 property.SetValue(target, CreateLazy(serviceType));
+                return;
+            }
+
+            if (IsFactory(property.PropertyType, out var factoryType))
+            {
+                property.SetValue(target, CreateFactory(factoryType));
                 return;
             }
 
@@ -237,23 +249,19 @@ namespace EthanToolBox.Core.DependencyInjection
             return false;
         }
 
+        private bool IsFactory(Type type, out Type serviceType)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Func<>))
+            {
+                serviceType = type.GetGenericArguments()[0];
+                return true;
+            }
+            serviceType = null;
+            return false;
+        }
+
         private object CreateLazy(Type serviceType)
         {
-            // Create a factory Func<object> that calls Resolve
-            // But Lazy<T> needs Func<T>.
-            // effectively: new Lazy<T>(() => (T)_container.Resolve(serviceType))
-            
-            var lazyType = typeof(Lazy<>).MakeGenericType(serviceType);
-            
-            // Define the factory method: () => (InternalResolve(serviceType))
-            // We use a closure here to capture _container and serviceType
-            Func<object> factory = () => _container.Resolve(serviceType);
-            
-            // Create the specific Func<T> delegate dynamically?
-            // Actually, we can just use Activator with a lambda if we do it right.
-            // But doing it via reflection is tricky for the generic delegate.
-            // Simplest way: Make a generic method and invoke it.
-            
             var method = typeof(Injector).GetMethod(nameof(CreateTypedLazy), BindingFlags.NonPublic | BindingFlags.Instance);
             var genericMethod = method.MakeGenericMethod(serviceType);
             return genericMethod.Invoke(this, null);
@@ -262,6 +270,18 @@ namespace EthanToolBox.Core.DependencyInjection
         private Lazy<T> CreateTypedLazy<T>()
         {
             return new Lazy<T>(() => _container.Resolve<T>());
+        }
+
+        private object CreateFactory(Type serviceType)
+        {
+            var method = typeof(Injector).GetMethod(nameof(CreateTypedFactory), BindingFlags.NonPublic | BindingFlags.Instance);
+            var genericMethod = method.MakeGenericMethod(serviceType);
+            return genericMethod.Invoke(this, null);
+        }
+
+        private Func<T> CreateTypedFactory<T>()
+        {
+            return () => _container.Resolve<T>();
         }
     }
 }

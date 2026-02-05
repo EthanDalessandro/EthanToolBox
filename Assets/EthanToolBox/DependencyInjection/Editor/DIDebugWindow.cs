@@ -443,6 +443,38 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             }
 
             EditorGUILayout.EndVertical();
+
+            GUILayout.Space(20);
+
+            // 4. Hot Swap (New)
+            DrawHotSwapSection(service);
+        }
+
+        private void DrawHotSwapSection(ServiceInfo service)
+        {
+            GUILayout.Label("🔥 Hot Swap", _subHeaderStyle);
+            EditorGUILayout.BeginVertical("HelpBox");
+            GUILayout.Label("Replace this service instance for future resolutions:", EditorStyles.miniLabel);
+
+            var newInstance = EditorGUILayout.ObjectField("New Instance", null, service.ServiceType, true);
+            if (newInstance != null)
+            {
+                if (GUILayout.Button("SWAP NOW"))
+                {
+                    if (EditorUtility.DisplayDialog("Hot Swap", $"Replace {service.DisplayName} with {newInstance.name}? \n\nExisting objects holding the old reference will NOT be updated.", "Yes, Swap", "Cancel"))
+                    {
+                        var containerField = typeof(DICompositionRoot).GetField("Container", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var container = containerField?.GetValue(_compositionRoot) as DIContainer;
+                        
+                        if (container != null)
+                        {
+                            container.HotSwap(service.ServiceType, newInstance);
+                            RefreshServices();
+                        }
+                    }
+                }
+            }
+            EditorGUILayout.EndVertical();
         }
 
         private List<Type> GetConsumers(Type dependency)

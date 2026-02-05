@@ -334,6 +334,85 @@ Un menu déroulant pratique dans la barre d'outils de l'éditeur Unity (à côt�
 - Respecte la hiérarchie des dossiers.
 - Demande de sauvegarder les changements avant de changer.
 
+###- 🟢 Indicateur Live en mode Play
+
+#### 🏭 Factories (Création Dynamique)
+Besoin de créer des objets (comme des ennemis) avec leurs dépendances ? Utilisez `Func<T>`.
+
+```csharp
+public class Spawner : MonoBehaviour
+{
+    // Injectez une fonction usine au lieu d'une instance
+    [Inject] private Func<Enemy> _enemyFactory; 
+
+    public void SpawnWave()
+    {
+        // Crée une nouvelle instance d'Enemy avec toutes ses dépendances injectées !
+        var newEnemy = _enemyFactory(); 
+    }
+}
+```
+
+#### 📦 Contextes de Scène (Sous-Conteneurs)
+Séparez vos **Services Globaux** (Audio, Save) de vos **Services Locaux** (Map, AI).
+1. **Global** : Créez un `DICompositionRoot` et cochez `Is Global`. Il persiste entre les scènes.
+2. **Local** : Dans n'importe quelle scène, laissez le `DICompositionRoot` (Is Global = Décoché).
+3. **Magie** : Les racines locales héritent automatiquement des services globaux. Vos objets peuvent injecter les deux !
+
+
+
+#### 🛠️ Outils Professionnels
+- **🔍 Analyseur Statique** : `EthanToolBox > Injection > Static Analyzer`. Scanne votre code et vérifie si toutes les injections ont bien un service correspondant **avant** de lancer le jeu.
+- **🔥 Hot Swapping** : Dans la fenêtre de Debug, remplacez un service en cours d'exécution par un autre (Drag & Drop -> Swap) pour tester des variantes sans redémarrer.
+
+### 📡 Event Bus (Communication Découplée)
+Un système "Radio" ultra-léger pour faire communiquer vos services sans qu'ils se connaissent (Découplage).
+
+**1. Créez un Signal (une simple classe/struct) :**
+```csharp
+public struct PlayerDamageSignal { public int Amount; }
+```
+
+**2. Abonnez-vous (Deux méthodes) :**
+```csharp
+public class HUD : MonoBehaviour
+{
+    [Inject] private IEventBus _bus;
+    
+    private void Start() 
+    {
+        // Option A : Avec paramètre (si vous voulez les données)
+        _bus.Subscribe<PlayerDamageSignal>(OnDamage);
+        
+        // Option B : Sans paramètre (juste pour savoir que c'est arrivé)
+         _bus.Subscribe<PlayerDamageSignal>(OnDamageSimple);
+    }
+
+    private void OnDamage(PlayerDamageSignal signal)
+    {
+        Debug.Log($"Aïe ! Pris {signal.Amount} dégâts.");
+    }
+    
+    private void OnDamageSimple()
+    {
+         Debug.Log("Aïe ! Je suis touché.");
+    }
+}
+```
+
+**3. Envoyez (Fire) :**
+```csharp
+public class Player : MonoBehaviour
+{
+    [Inject] private IEventBus _bus;
+    
+    public void TakeDamage(int amount)
+    {
+         _bus.Fire(new PlayerDamageSignal { Amount = amount });
+    }
+}
+```
+
 ### Indicateur de Script Hiérarchie
 
 Une aide visuelle dans la fenêtre Hiérarchie pour identifier les objets avec des scripts attachés.

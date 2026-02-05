@@ -360,6 +360,83 @@ A handy dropdown in the Unity Editor toolbar (next to the Play button) to quickl
 - Respects folder hierarchy.
 - Prompts to save changes before switching.
 
+#### 🏭 Factories (Dynamic Spawning)
+Need to spawn objects (like enemies) with injected dependencies? Use `Func<T>`.
+
+```csharp
+public class Spawner : MonoBehaviour
+{
+    // Inject a factory function instead of an instance
+    [Inject] private Func<Enemy> _enemyFactory; 
+
+    public void SpawnWave()
+    {
+        // Creates a new Enemy instance with all its dependencies injected automatically!
+        var newEnemy = _enemyFactory(); 
+    }
+}
+```
+
+#### 📦 Scene Contexts (Sub-Containers)
+Separate your **Global Services** (Audio, Save) from **Scene Services** (Map, AI).
+1. **Global**: Create a `DICompositionRoot` and check `Is Global`. It persists across scenes.
+2. **Local**: In any scene, allow `DICompositionRoot` (Is Global = Unchecked).
+3. **Magic**: Local roots automatically inherit services from the Global root. Objects in the scene can inject both!
+
+
+
+#### 🛠️ Professional Tools
+- **🔍 Static Analyzer**: `EthanToolBox > Injection > Static Analyzer`. Scans your code and matches it against registrations to find missing dependencies **before** you hit Play.
+- **🔥 Hot Swapping**: In the Debug Window, replace a running service instance with another one (Drag & Drop -> Swap) to test new behaviors at runtime.
+
+### 📡 Event Bus (Decoupled Communication)
+A lightweight "Radio" system to let services talk without knowing each other (Decoupling).
+
+**1. Create a Signal (just a class/struct):**
+```csharp
+public struct PlayerDamageSignal { public int Amount; }
+```
+
+**2. Subscribe (Two ways):**
+```csharp
+public class HUD : MonoBehaviour
+{
+    [Inject] private IEventBus _bus;
+    
+    private void Start() 
+    {
+        // Option A: With parameter (if you need data)
+        _bus.Subscribe<PlayerDamageSignal>(OnDamage);
+        
+        // Option B: No parameter (if you just want to know it happened)
+         _bus.Subscribe<PlayerDamageSignal>(OnDamageSimple);
+    }
+
+    private void OnDamage(PlayerDamageSignal signal)
+    {
+        Debug.Log($"Ouch! Took {signal.Amount} damage.");
+    }
+    
+    private void OnDamageSimple()
+    {
+         Debug.Log("Ouch! I was hit.");
+    }
+}
+```
+
+**3. Fire (Send):**
+```csharp
+public class Player : MonoBehaviour
+{
+    [Inject] private IEventBus _bus;
+    
+    public void TakeDamage(int amount)
+    {
+         _bus.Fire(new PlayerDamageSignal { Amount = amount });
+    }
+}
+```
+
 ### Hierarchy Script Indicator
 
 A visual aid in the Hierarchy window that helps identify objects with attached scripts.
