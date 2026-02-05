@@ -35,8 +35,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         private Dictionary<Type, double> _initTimes;
         private List<string> _detectedCycles;
         private List<string> _duplicateWarnings;
-        private List<string> _resolutionLog;
-        private bool _showResolutionLog = false;
         
         private float _lastRefreshTime;
         private string _searchFilter = "";
@@ -45,7 +43,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         private ServiceInfo _selectedService;
         private Vector2 _listScrollPosition;
         private Vector2 _inspectorScrollPosition;
-        private Vector2 _logScrollPosition;
 
         // Layout
         private float _sidebarWidth = 300f;
@@ -237,41 +234,9 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             {
                 EditorGUILayout.HelpBox($"Active: {_services.Count}", MessageType.Info);
                 
-                // Toolbar buttons
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("🔗 Open Graph", GUILayout.Height(25)))
+                if (GUILayout.Button("🔗 Open Dependency Graph", GUILayout.Height(28)))
                 {
                     OpenDependencyGraph();
-                }
-                if (GUILayout.Button("📋 Copy Mermaid", GUILayout.Height(25)))
-                {
-                    ExportMermaidGraph();
-                }
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.BeginHorizontal();
-                _showResolutionLog = GUILayout.Toggle(_showResolutionLog, "📜 Resolution Log", "Button", GUILayout.Height(22));
-                EditorGUILayout.EndHorizontal();
-
-                // Resolution Log Foldout
-                if (_showResolutionLog)
-                {
-                    EditorGUILayout.BeginVertical("HelpBox");
-                    GUILayout.Label("Resolution Order (Latest Last):", EditorStyles.miniBoldLabel);
-                    if (_resolutionLog != null && _resolutionLog.Count > 0)
-                    {
-                        _logScrollPosition = EditorGUILayout.BeginScrollView(_logScrollPosition, GUILayout.MaxHeight(120));
-                        foreach (var entry in _resolutionLog)
-                        {
-                            GUILayout.Label(entry, EditorStyles.miniLabel);
-                        }
-                        EditorGUILayout.EndScrollView();
-                    }
-                    else
-                    {
-                        GUILayout.Label("No resolutions yet. Services are resolved on first access.", EditorStyles.miniLabel);
-                    }
-                    EditorGUILayout.EndVertical();
                 }
             }
             else
@@ -285,30 +250,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         {
             var monoTypes = new HashSet<Type>(_services.Where(s => s.IsMonoBehaviour).Select(s => s.ServiceType));
             DependencyGraphWindow.ShowWithData(_dependencyGraph, monoTypes);
-        }
-
-        private void ExportMermaidGraph()
-        {
-            if (_dependencyGraph == null || _dependencyGraph.Count == 0)
-            {
-                EditorUtility.DisplayDialog("Mermaid Export", "No dependency graph data available.", "OK");
-                return;
-            }
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("```mermaid");
-            sb.AppendLine("graph TD;");
-            foreach (var kvp in _dependencyGraph)
-            {
-                foreach (var dep in kvp.Value)
-                {
-                    sb.AppendLine($"    {kvp.Key.Name} --> {dep.Name};");
-                }
-            }
-            sb.AppendLine("```");
-
-            GUIUtility.systemCopyBuffer = sb.ToString();
-            EditorUtility.DisplayDialog("Mermaid Export", "Dependency graph copied to clipboard!", "OK");
         }
 
         private void DrawSearchBar()
@@ -575,7 +516,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             _initTimes = container.InitializationTimes;
             _detectedCycles = container.DetectedCycles;
             _duplicateWarnings = container.DuplicateWarnings;
-            _resolutionLog = container.ResolutionLog;
 
             if (_services.Count == 0 || forceRepaint)
             {

@@ -24,9 +24,6 @@ namespace EthanToolBox.Core.DependencyInjection
 
         // Duplicate Registration Warnings
         public List<string> DuplicateWarnings { get; private set; } = new List<string>();
-
-        // Resolution History Log
-        public List<string> ResolutionLog { get; private set; } = new List<string>();
 #endif
         
         // --- Dependency Graph Data ---
@@ -121,7 +118,6 @@ namespace EthanToolBox.Core.DependencyInjection
             {
 #if UNITY_EDITOR
                 TrackDependency(serviceType);
-                ResolutionLog.Add($"{System.DateTime.Now:HH:mm:ss.fff} -> {serviceType.Name}");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var result = factory();
                 sw.Stop();
