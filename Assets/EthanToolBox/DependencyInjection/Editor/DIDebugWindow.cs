@@ -508,8 +508,8 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             _compositionRoot = FindFirstObjectByType<DICompositionRoot>();
             if (_compositionRoot == null) return;
 
-            var containerField = typeof(DICompositionRoot).GetField("Container", 
-                BindingFlags.NonPublic | BindingFlags.Instance);
+            var containerField = typeof(DICompositionRoot).GetProperty("Container", 
+                BindingFlags.Public | BindingFlags.Instance);
             
             if (containerField == null) return;
 
