@@ -88,5 +88,48 @@ namespace EthanToolBox.Core.DependencyInjection
             service = null;
             return false;
         }
+
+        /// <summary>
+        /// Resolve all services that are assignable to the given type.
+        /// </summary>
+        public List<T> ResolveAll<T>()
+        {
+            var results = new List<T>();
+            var targetType = typeof(T);
+
+            foreach (var kvp in _registrations)
+            {
+                if (targetType.IsAssignableFrom(kvp.Key))
+                {
+                    var instance = kvp.Value();
+                    if (instance is T typed)
+                    {
+                        results.Add(typed);
+                    }
+                }
+            }
+            return results;
+        }
+
+        /// <summary>
+        /// Get all registered service types. Used for debugging.
+        /// </summary>
+        public IEnumerable<Type> GetAllRegisteredTypes()
+        {
+            return _registrations.Keys;
+        }
+
+        /// <summary>
+        /// Get the instance for a registered type. Used for debugging.
+        /// </summary>
+        public object GetInstance(Type serviceType)
+        {
+            if (_registrations.TryGetValue(serviceType, out var factory))
+            {
+                return factory();
+            }
+            return null;
+        }
     }
 }
+

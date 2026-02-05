@@ -120,11 +120,93 @@ Ce système est conçu pour les **Projets de taille petite à moyenne**, les **P
 - **Simple :** Courbe d'apprentissage très faible. Facile à configurer et déboguer.
 - **Pas de Dépendances Externes :** Garde votre projet propre.
 - **Explicite :** Vous contrôlez exactement ce qui est enregistré et injecté.
+- **Fonctionnalités Uniques :** Injection optionnelle, InjectAll, et fenêtre de Debug.
 
 **Faiblesses :**
 - **Enregistrement Manuel :** Vous devez enregistrer manuellement les services dans le Composition Root.
 - **Fonctionnalités Basiques :** Ne supporte pas les fonctionnalités complexes comme la résolution de dépendances circulaires, les sous-conteneurs, ou les liaisons conditionnelles.
 - **Scan de Scène :** L'auto-injection repose sur `FindObjectsByType`, qui peut être lent sur de très grandes scènes avec des milliers de MonoBehaviours (bien que cela puisse être optimisé en injectant manuellement des objets spécifiques).
+
+### Fonctionnalités Avancées
+
+#### Injection Optionnelle
+Gérez gracieusement les services manquants sans exception :
+```csharp
+public class Analytics : MonoBehaviour
+{
+    [Inject(Optional = true)]
+    private IAnalyticsService _analytics; // null si non enregistré
+
+    public void Track(string event)
+    {
+        _analytics?.TrackEvent(event); // Utilisation sécurisée
+    }
+}
+```
+
+#### InjectAll - Injection de Collections
+Injectez toutes les instances enregistrées d'un type :
+```csharp
+public interface IEnemy { void Attack(); }
+
+[Service] public class Zombie : MonoBehaviour, IEnemy { }
+[Service] public class Skeleton : MonoBehaviour, IEnemy { }
+
+public class EnemyManager : MonoBehaviour
+{
+    [InjectAll]
+    private List<IEnemy> _allEnemies; // Contient [Zombie, Skeleton]
+
+    public void AttackAll()
+    {
+        foreach (var enemy in _allEnemies)
+            enemy.Attack();
+    }
+}
+```
+
+#### TryResolve & IsRegistered
+Vérifiez et résolvez les services de manière sécurisée :
+```csharp
+// Vérifier si un service existe
+if (container.IsRegistered<IAnalytics>())
+{
+    // Service disponible
+}
+
+// Résolution sécurisée sans exception
+if (container.TryResolve<ILeaderboard>(out var leaderboard))
+{
+    leaderboard.SubmitScore(100);
+}
+```
+
+#### Injection Tardive
+Injectez des dépendances dans des objets activés après le démarrage :
+```csharp
+public class DynamicUI : MonoBehaviour
+{
+    [Inject] private GameManager _gameManager;
+
+    private void OnEnable()
+    {
+        // Demander l'injection pour les objets activés après l'initialisation DI
+        DICompositionRoot.RequestInjection(this);
+    }
+}
+```
+
+#### Fenêtre de Debug
+Une fenêtre Editor stylisée pour visualiser tous les services enregistrés.
+
+**Accès :** `Tools > EthanToolBox > DI Debug Window`
+
+**Fonctionnalités :**
+- 🎨 Thème sombre moderne avec couleurs d'accent
+- 📊 Stats en direct (Services, MonoBehaviours, Classes)
+- 🔍 Recherche et filtrage des services
+- 📌 Ping des services MonoBehaviour dans la Hiérarchie
+- 🟢 Indicateur Live en mode Play
 
 ### Audio Manager (Gestionnaire Audio)
 

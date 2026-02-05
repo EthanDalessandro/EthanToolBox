@@ -121,11 +121,93 @@ This system is designed for **Small to Medium-sized projects**, **Prototypes**, 
 - **Simple:** Very low learning curve. Easy to setup and debug.
 - **No External Dependencies:** Keeps your project clean.
 - **Explicit:** You control exactly what gets registered and injected.
+- **Unique Features:** Optional injection, InjectAll, and Debug Window.
 
 **Weaknesses:**
 - **Manual Registration:** You must manually register services in the Composition Root.
 - **Basic Features:** Does not support complex features like circular dependency resolution, sub-containers, or conditional bindings.
 - **Scene Scanning:** The auto-injection relies on `FindObjectsByType`, which can be slow on very large scenes with thousands of MonoBehaviours (though this can be optimized by manually injecting specific objects).
+
+### Advanced Features
+
+#### Optional Injection
+Gracefully handle missing services without exceptions:
+```csharp
+public class Analytics : MonoBehaviour
+{
+    [Inject(Optional = true)]
+    private IAnalyticsService _analytics; // null if not registered
+
+    public void Track(string event)
+    {
+        _analytics?.TrackEvent(event); // Safe to use
+    }
+}
+```
+
+#### InjectAll - Collection Injection
+Inject all registered instances of a type:
+```csharp
+public interface IEnemy { void Attack(); }
+
+[Service] public class Zombie : MonoBehaviour, IEnemy { }
+[Service] public class Skeleton : MonoBehaviour, IEnemy { }
+
+public class EnemyManager : MonoBehaviour
+{
+    [InjectAll]
+    private List<IEnemy> _allEnemies; // Contains [Zombie, Skeleton]
+
+    public void AttackAll()
+    {
+        foreach (var enemy in _allEnemies)
+            enemy.Attack();
+    }
+}
+```
+
+#### TryResolve & IsRegistered
+Safely check and resolve services:
+```csharp
+// Check if a service exists
+if (container.IsRegistered<IAnalytics>())
+{
+    // Service is available
+}
+
+// Safe resolution without exceptions
+if (container.TryResolve<ILeaderboard>(out var leaderboard))
+{
+    leaderboard.SubmitScore(100);
+}
+```
+
+#### Late Injection
+Inject dependencies into objects activated after startup:
+```csharp
+public class DynamicUI : MonoBehaviour
+{
+    [Inject] private GameManager _gameManager;
+
+    private void OnEnable()
+    {
+        // Request injection for objects activated after DI initialization
+        DICompositionRoot.RequestInjection(this);
+    }
+}
+```
+
+#### Debug Window
+A stylish Editor window to visualize all registered services.
+
+**Access:** `Tools > EthanToolBox > DI Debug Window`
+
+**Features:**
+- 🎨 Modern dark theme with accent colors
+- 📊 Live stats (Services, MonoBehaviours, Classes)
+- 🔍 Search and filter services
+- 📌 Ping MonoBehaviour services in the Hierarchy
+- 🟢 Live indicator when in Play Mode
 
 ### Audio Manager
 
