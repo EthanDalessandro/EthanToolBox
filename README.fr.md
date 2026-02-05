@@ -93,21 +93,6 @@ sequenceDiagram
    }
    ```
 
-5. **Injecter dans un MonoBehaviour :**
-   Ajoutez l'attribut `[Inject]` au champ que vous voulez remplir.
-   ```csharp
-   public class Player : MonoBehaviour
-   {
-       [Inject] private MyService _myService;
-
-       private void Start()
-       {
-           _myService.DoSomething();
-       }
-   }
-   ```
-
-
 
 
 ### Caractéristiques du Système
@@ -334,7 +319,7 @@ Un menu déroulant pratique dans la barre d'outils de l'éditeur Unity (à côt�
 - Respecte la hiérarchie des dossiers.
 - Demande de sauvegarder les changements avant de changer.
 
-###- 🟢 Indicateur Live en mode Play
+### 🟢 Indicateur Live en mode Play
 
 #### 🏭 Factories (Création Dynamique)
 Besoin de créer des objets (comme des ennemis) avec leurs dépendances ? Utilisez `Func<T>`.
@@ -363,7 +348,41 @@ Séparez vos **Services Globaux** (Audio, Save) de vos **Services Locaux** (Map,
 
 #### 🛠️ Outils Professionnels
 - **🔍 Analyseur Statique** : `EthanToolBox > Injection > Static Analyzer`. Scanne votre code et vérifie si toutes les injections ont bien un service correspondant **avant** de lancer le jeu.
-- **🔥 Hot Swapping** : Dans la fenêtre de Debug, remplacez un service en cours d'exécution par un autre (Drag & Drop -> Swap) pour tester des variantes sans redémarrer.
+
+
+### 🔌 Auto-Inject sur Spawn (Instanciation de Prefabs)
+Quand vous instanciez un prefab avec `Instantiate()`, les scripts de l'objet ne sont PAS injectés. Utilisez `DICompositionRoot.Spawn()` à la place.
+
+```csharp
+// Ancienne méthode (Pas d'injection !)
+var enemy = Instantiate(enemyPrefab);
+
+// Nouvelle méthode (Auto-injecté + POOLÉ !)
+var enemy = DICompositionRoot.Spawn(enemyPrefab);
+```
+
+### 🎱 Object Pooling (Intégré)
+Spawn utilise automatiquement le pooling. Utilisez `Release()` au lieu de `Destroy()`.
+
+```csharp
+// Spawn (depuis le pool si dispo, sinon Instantiate)
+var bullet = DICompositionRoot.Spawn(bulletPrefab);
+
+// Release (retourne au pool au lieu de Destroy)
+DICompositionRoot.Release(bullet);
+
+// Optionnel : Pré-chauffer le pool au démarrage
+DICompositionRoot.Prewarm(bulletPrefab, 50);
+```
+
+**Callbacks optionnels :** Implémentez `IPoolable` pour la logique de reset :
+```csharp
+public class Bullet : MonoBehaviour, IPoolable
+{
+    public void OnSpawn() { /* Reset l'état */ }
+    public void OnRelease() { /* Nettoyage */ }
+}
+```
 
 ### 📡 Event Bus (Communication Découplée)
 Un système "Radio" ultra-léger pour faire communiquer vos services sans qu'ils se connaissent (Découplage).

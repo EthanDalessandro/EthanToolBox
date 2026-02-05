@@ -94,20 +94,6 @@ sequenceDiagram
    }
    ```
 
-5. **Inject into a MonoBehaviour:**
-   Add the `[Inject]` attribute to any field you want to populate.
-   ```csharp
-   public class Player : MonoBehaviour
-   {
-       [Inject] private MyService _myService;
-
-       private void Start()
-       {
-           _myService.DoSomething();
-       }
-   }
-   ```
-
 
 
 
@@ -387,7 +373,41 @@ Separate your **Global Services** (Audio, Save) from **Scene Services** (Map, AI
 
 #### 🛠️ Professional Tools
 - **🔍 Static Analyzer**: `EthanToolBox > Injection > Static Analyzer`. Scans your code and matches it against registrations to find missing dependencies **before** you hit Play.
-- **🔥 Hot Swapping**: In the Debug Window, replace a running service instance with another one (Drag & Drop -> Swap) to test new behaviors at runtime.
+
+
+### 🔌 Auto-Inject on Spawn (Prefab Instantiation)
+When you spawn a prefab with `Instantiate()`, the new object's scripts are NOT injected. Use `DICompositionRoot.Spawn()` instead.
+
+```csharp
+// Old way (No injection!)
+var enemy = Instantiate(enemyPrefab);
+
+// New way (Auto-injected + POOLED!)
+var enemy = DICompositionRoot.Spawn(enemyPrefab);
+```
+
+### 🎱 Object Pooling (Built-in)
+Spawn automatically uses object pooling. Just use `Release()` instead of `Destroy()`.
+
+```csharp
+// Spawn (from pool if available, else Instantiate)
+var bullet = DICompositionRoot.Spawn(bulletPrefab);
+
+// Release (back to pool instead of Destroy)
+DICompositionRoot.Release(bullet);
+
+// Optional: Pre-warm the pool at start
+DICompositionRoot.Prewarm(bulletPrefab, 50);
+```
+
+**Optional Callbacks:** Implement `IPoolable` for reset logic:
+```csharp
+public class Bullet : MonoBehaviour, IPoolable
+{
+    public void OnSpawn() { /* Reset state */ }
+    public void OnRelease() { /* Cleanup */ }
+}
+```
 
 ### 📡 Event Bus (Decoupled Communication)
 A lightweight "Radio" system to let services talk without knowing each other (Decoupling).

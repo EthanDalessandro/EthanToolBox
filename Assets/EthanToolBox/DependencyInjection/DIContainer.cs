@@ -21,6 +21,12 @@ namespace EthanToolBox.Core.DependencyInjection
 
         // Cycle Detection Data: List of circular paths detected
         public List<string> DetectedCycles { get; private set; } = new List<string>();
+
+        // Duplicate Registration Warnings
+        public List<string> DuplicateWarnings { get; private set; } = new List<string>();
+
+        // Resolution History Log
+        public List<string> ResolutionLog { get; private set; } = new List<string>();
 #endif
         
         // --- Dependency Graph Data ---
@@ -96,6 +102,14 @@ namespace EthanToolBox.Core.DependencyInjection
 
         public void RegisterSingleton(Type serviceType, object instance)
         {
+#if UNITY_EDITOR
+            if (_registrations.ContainsKey(serviceType))
+            {
+                var warning = $"Duplicate registration for {serviceType.Name}";
+                DuplicateWarnings.Add(warning);
+                UnityEngine.Debug.LogWarning($"[DI] {warning}");
+            }
+#endif
             _registrations[serviceType] = () => instance;
         }
 
@@ -107,6 +121,7 @@ namespace EthanToolBox.Core.DependencyInjection
             {
 #if UNITY_EDITOR
                 TrackDependency(serviceType);
+                ResolutionLog.Add($"{System.DateTime.Now:HH:mm:ss.fff} -> {serviceType.Name}");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var result = factory();
                 sw.Stop();
@@ -235,24 +250,7 @@ namespace EthanToolBox.Core.DependencyInjection
             return null;
         }
 
-#if UNITY_EDITOR
-        /// <summary>
-        /// DEBUG ONLY: Replaces the registered service with a new instance.
-        /// Warning: Already injected dependencies will NOT be updated. Only new resolutions will use this.
-        /// </summary>
-        public void HotSwap(Type serviceType, object newInstance)
-        {
-            if (newInstance != null && !serviceType.IsAssignableFrom(newInstance.GetType()))
-            {
-                UnityEngine.Debug.LogError($"[DI] HotSwap failed: {newInstance.GetType().Name} is not assignable to {serviceType.Name}");
-                return;
-            }
 
-            // We overwrite the factory to return the new instance
-            _registrations[serviceType] = () => newInstance;
-            UnityEngine.Debug.Log($"[DI] Hot Swapped service {serviceType.Name} with new instance.");
-        }
-#endif
     }
 }
 

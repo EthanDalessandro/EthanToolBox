@@ -32,8 +32,11 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         private DICompositionRoot _compositionRoot;
         private List<ServiceInfo> _services = new List<ServiceInfo>();
         private Dictionary<Type, HashSet<Type>> _dependencyGraph;
-        private Dictionary<Type, double> _initTimes; // New
-        private List<string> _detectedCycles; // New
+        private Dictionary<Type, double> _initTimes;
+        private List<string> _detectedCycles;
+        private List<string> _duplicateWarnings;
+        private List<string> _resolutionLog;
+        private bool _showResolutionLog = false;
         
         private float _lastRefreshTime;
         private string _searchFilter = "";
@@ -42,6 +45,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         private ServiceInfo _selectedService;
         private Vector2 _listScrollPosition;
         private Vector2 _inspectorScrollPosition;
+        private Vector2 _logScrollPosition;
 
         // Layout
         private float _sidebarWidth = 300f;
@@ -166,6 +170,21 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
                 GUILayout.Space(5);
             }
 
+            // Duplicate Alerts Zone
+            if (_duplicateWarnings != null && _duplicateWarnings.Count > 0)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                GUI.backgroundColor = Color.yellow;
+                EditorGUILayout.LabelField("⚠️ DUPLICATE REGISTRATIONS", EditorStyles.whiteBoldLabel);
+                GUI.backgroundColor = Color.white;
+                foreach (var warning in _duplicateWarnings)
+                {
+                    EditorGUILayout.LabelField(warning, EditorStyles.wordWrappedLabel);
+                }
+                EditorGUILayout.EndVertical();
+                GUILayout.Space(5);
+            }
+
             EditorGUILayout.BeginHorizontal();
             {
                 // Left Panel: Service List
@@ -217,12 +236,59 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             if (Application.isPlaying)
             {
                 EditorGUILayout.HelpBox($"Active: {_services.Count}", MessageType.Info);
+                
+                // Toolbar buttons
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("📊 Export Mermaid", GUILayout.Height(25)))
+                {
+                    ExportMermaidGraph();
+                }
+                _showResolutionLog = GUILayout.Toggle(_showResolutionLog, "📜 Resolution Log", "Button", GUILayout.Height(25));
+                EditorGUILayout.EndHorizontal();
+
+                // Resolution Log Foldout
+                if (_showResolutionLog && _resolutionLog != null && _resolutionLog.Count > 0)
+                {
+                    EditorGUILayout.BeginVertical("HelpBox");
+                    GUILayout.Label("Resolution Order (Latest Last):", EditorStyles.miniBoldLabel);
+                    _logScrollPosition = EditorGUILayout.BeginScrollView(_logScrollPosition, GUILayout.MaxHeight(100));
+                    foreach (var entry in _resolutionLog)
+                    {
+                        GUILayout.Label(entry, EditorStyles.miniLabel);
+                    }
+                    EditorGUILayout.EndScrollView();
+                    EditorGUILayout.EndVertical();
+                }
             }
             else
             {
                 EditorGUILayout.HelpBox("Enter Play Mode to inspect services", MessageType.Warning);
             }
             EditorGUILayout.EndVertical();
+        }
+
+        private void ExportMermaidGraph()
+        {
+            if (_dependencyGraph == null || _dependencyGraph.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Mermaid Export", "No dependency graph data available.", "OK");
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("```mermaid");
+            sb.AppendLine("graph TD;");
+            foreach (var kvp in _dependencyGraph)
+            {
+                foreach (var dep in kvp.Value)
+                {
+                    sb.AppendLine($"    {kvp.Key.Name} --> {dep.Name};");
+                }
+            }
+            sb.AppendLine("```");
+
+            GUIUtility.systemCopyBuffer = sb.ToString();
+            EditorUtility.DisplayDialog("Mermaid Export", "Dependency graph copied to clipboard!", "OK");
         }
 
         private void DrawSearchBar()
@@ -443,38 +509,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             }
 
             EditorGUILayout.EndVertical();
-
-            GUILayout.Space(20);
-
-            // 4. Hot Swap (New)
-            DrawHotSwapSection(service);
-        }
-
-        private void DrawHotSwapSection(ServiceInfo service)
-        {
-            GUILayout.Label("🔥 Hot Swap", _subHeaderStyle);
-            EditorGUILayout.BeginVertical("HelpBox");
-            GUILayout.Label("Replace this service instance for future resolutions:", EditorStyles.miniLabel);
-
-            var newInstance = EditorGUILayout.ObjectField("New Instance", null, service.ServiceType, true);
-            if (newInstance != null)
-            {
-                if (GUILayout.Button("SWAP NOW"))
-                {
-                    if (EditorUtility.DisplayDialog("Hot Swap", $"Replace {service.DisplayName} with {newInstance.name}? \n\nExisting objects holding the old reference will NOT be updated.", "Yes, Swap", "Cancel"))
-                    {
-                        var containerField = typeof(DICompositionRoot).GetField("Container", BindingFlags.NonPublic | BindingFlags.Instance);
-                        var container = containerField?.GetValue(_compositionRoot) as DIContainer;
-                        
-                        if (container != null)
-                        {
-                            container.HotSwap(service.ServiceType, newInstance);
-                            RefreshServices();
-                        }
-                    }
-                }
-            }
-            EditorGUILayout.EndVertical();
         }
 
         private List<Type> GetConsumers(Type dependency)
@@ -520,6 +554,8 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             _dependencyGraph = container.DependencyGraph;
             _initTimes = container.InitializationTimes;
             _detectedCycles = container.DetectedCycles;
+            _duplicateWarnings = container.DuplicateWarnings;
+            _resolutionLog = container.ResolutionLog;
 
             if (_services.Count == 0 || forceRepaint)
             {
