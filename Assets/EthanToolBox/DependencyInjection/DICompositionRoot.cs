@@ -25,7 +25,7 @@ namespace EthanToolBox.Core.DependencyInjection
             {
                 // Skip the CompositionRoot itself to avoid circular issues or double init if not careful
                 if (mb == this) continue;
-                
+
                 Injector.Inject(mb);
             }
         }
@@ -46,7 +46,7 @@ namespace EthanToolBox.Core.DependencyInjection
                         if (typeof(MonoBehaviour).IsAssignableFrom(type))
                         {
                             // It's a MonoBehaviour, try to find it in the scene
-                            var instance = FindFirstObjectByType(type);
+                            var instance = FindFirstObjectByType(type, FindObjectsInactive.Include);
                             if (instance != null)
                             {
                                 container.RegisterSingleton(serviceType, instance);
