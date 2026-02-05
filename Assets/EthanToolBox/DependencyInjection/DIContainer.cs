@@ -49,5 +49,44 @@ namespace EthanToolBox.Core.DependencyInjection
         {
             return (TService)Resolve(typeof(TService));
         }
+
+        /// <summary>
+        /// Check if a service type is registered.
+        /// </summary>
+        public bool IsRegistered<TService>()
+        {
+            return IsRegistered(typeof(TService));
+        }
+
+        public bool IsRegistered(Type serviceType)
+        {
+            return _registrations.ContainsKey(serviceType);
+        }
+
+        /// <summary>
+        /// Try to resolve a service without throwing an exception.
+        /// Returns true if successful, false if not registered.
+        /// </summary>
+        public bool TryResolve<TService>(out TService service)
+        {
+            if (TryResolve(typeof(TService), out var obj))
+            {
+                service = (TService)obj;
+                return true;
+            }
+            service = default;
+            return false;
+        }
+
+        public bool TryResolve(Type serviceType, out object service)
+        {
+            if (_registrations.TryGetValue(serviceType, out var factory))
+            {
+                service = factory();
+                return true;
+            }
+            service = null;
+            return false;
+        }
     }
 }
