@@ -118,7 +118,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
 
         private void InitStyles()
         {
-            if (_stylesInitialized) return;
+            if (_stylesInitialized && _nodeTitleStyle != null) return;
 
             _nodeTitleStyle = new GUIStyle(EditorStyles.whiteBoldLabel)
             {
@@ -294,7 +294,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             if (displayName.Length > 18) displayName = displayName.Substring(0, 15) + "...";
             
             Rect titleRect = new Rect(rect.x + 10, rect.y + 12, rect.width - 20, 22);
-            GUI.Label(titleRect, $"{icon} {displayName}", _nodeTitleStyle);
+            GUI.Label(titleRect, $"{icon} {displayName}", _nodeTitleStyle ?? EditorStyles.whiteBoldLabel);
 
             // Connection counts
             int outCount = GetDependencyCount(type);
@@ -312,7 +312,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             }
             
             Rect infoRect = new Rect(rect.x + 5, rect.y + rect.height - 22, rect.width - 10, 18);
-            GUI.Label(infoRect, info, _nodeInfoStyle);
+            GUI.Label(infoRect, info, _nodeInfoStyle ?? EditorStyles.miniLabel);
         }
 
         private void DrawBorder(Rect rect, Color color, float thickness)
@@ -380,7 +380,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             DrawArrowHead(end, (end - t2).normalized, lineColor, highlighted ? 12f : 8f);
 
             // Label on connection
-            if (highlighted)
+            if (highlighted && _connectionLabelStyle != null)
             {
                 Vector2 labelPos = midPoint;
                 string label = "depends on";
