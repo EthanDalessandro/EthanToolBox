@@ -239,24 +239,38 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
                 
                 // Toolbar buttons
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("📊 Export Mermaid", GUILayout.Height(25)))
+                if (GUILayout.Button("🔗 Open Graph", GUILayout.Height(25)))
+                {
+                    OpenDependencyGraph();
+                }
+                if (GUILayout.Button("📋 Copy Mermaid", GUILayout.Height(25)))
                 {
                     ExportMermaidGraph();
                 }
-                _showResolutionLog = GUILayout.Toggle(_showResolutionLog, "📜 Resolution Log", "Button", GUILayout.Height(25));
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                _showResolutionLog = GUILayout.Toggle(_showResolutionLog, "📜 Resolution Log", "Button", GUILayout.Height(22));
                 EditorGUILayout.EndHorizontal();
 
                 // Resolution Log Foldout
-                if (_showResolutionLog && _resolutionLog != null && _resolutionLog.Count > 0)
+                if (_showResolutionLog)
                 {
                     EditorGUILayout.BeginVertical("HelpBox");
                     GUILayout.Label("Resolution Order (Latest Last):", EditorStyles.miniBoldLabel);
-                    _logScrollPosition = EditorGUILayout.BeginScrollView(_logScrollPosition, GUILayout.MaxHeight(100));
-                    foreach (var entry in _resolutionLog)
+                    if (_resolutionLog != null && _resolutionLog.Count > 0)
                     {
-                        GUILayout.Label(entry, EditorStyles.miniLabel);
+                        _logScrollPosition = EditorGUILayout.BeginScrollView(_logScrollPosition, GUILayout.MaxHeight(120));
+                        foreach (var entry in _resolutionLog)
+                        {
+                            GUILayout.Label(entry, EditorStyles.miniLabel);
+                        }
+                        EditorGUILayout.EndScrollView();
                     }
-                    EditorGUILayout.EndScrollView();
+                    else
+                    {
+                        GUILayout.Label("No resolutions yet. Services are resolved on first access.", EditorStyles.miniLabel);
+                    }
                     EditorGUILayout.EndVertical();
                 }
             }
@@ -265,6 +279,12 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
                 EditorGUILayout.HelpBox("Enter Play Mode to inspect services", MessageType.Warning);
             }
             EditorGUILayout.EndVertical();
+        }
+
+        private void OpenDependencyGraph()
+        {
+            var monoTypes = new HashSet<Type>(_services.Where(s => s.IsMonoBehaviour).Select(s => s.ServiceType));
+            DependencyGraphWindow.ShowWithData(_dependencyGraph, monoTypes);
         }
 
         private void ExportMermaidGraph()
