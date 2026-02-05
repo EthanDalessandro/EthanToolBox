@@ -18,8 +18,13 @@ namespace EthanToolBox.Core.DependencyInjection
         public void Inject(object target)
         {
             var type = target.GetType();
+#if UNITY_EDITOR
+            _container.BeginContext(type);
+#endif
 
-            // 1. Inject Fields
+            try
+            {
+                // 1. Inject Fields
             var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var field in fields)
             {
@@ -68,6 +73,13 @@ namespace EthanToolBox.Core.DependencyInjection
                 {
                     InjectToMethod(target, method, injectAttr.Optional);
                 }
+            }
+            }
+            finally
+            {
+#if UNITY_EDITOR
+                _container.EndContext();
+#endif
             }
         }
 

@@ -7,6 +7,43 @@ namespace EthanToolBox.Core.DependencyInjection
     public class DIContainer
     {
         private readonly Dictionary<Type, Func<object>> _registrations = new Dictionary<Type, Func<object>>();
+        
+        // --- Dependency Graph Data ---
+#if UNITY_EDITOR
+        // Key: Consumer Type, Value: List of Dependencies (Types that yielded an instance)
+        public Dictionary<Type, HashSet<Type>> DependencyGraph { get; private set; } = new Dictionary<Type, HashSet<Type>>();
+        
+        // Track the current resolution context (who is asking for a dependency?)
+        private Stack<Type> _resolutionStack = new Stack<Type>();
+
+        // Called by Injector or Resolve recursively
+        public void BeginContext(Type consumerType)
+        {
+            _resolutionStack.Push(consumerType);
+            if (!DependencyGraph.ContainsKey(consumerType))
+            {
+                DependencyGraph[consumerType] = new HashSet<Type>();
+            }
+        }
+
+        public void EndContext()
+        {
+            if (_resolutionStack.Count > 0)
+                _resolutionStack.Pop();
+        }
+
+        private void TrackDependency(Type resolvedServiceType)
+        {
+            if (_resolutionStack.Count > 0)
+            {
+                var consumer = _resolutionStack.Peek();
+                if (DependencyGraph.ContainsKey(consumer))
+                {
+                    DependencyGraph[consumer].Add(resolvedServiceType);
+                }
+            }
+        }
+#endif
 
         public void RegisterSingleton<TService>(TService instance)
         {
@@ -39,6 +76,9 @@ namespace EthanToolBox.Core.DependencyInjection
         {
             if (_registrations.TryGetValue(serviceType, out var factory))
             {
+#if UNITY_EDITOR
+                TrackDependency(serviceType);
+#endif
                 return factory();
             }
 
@@ -82,6 +122,9 @@ namespace EthanToolBox.Core.DependencyInjection
         {
             if (_registrations.TryGetValue(serviceType, out var factory))
             {
+#if UNITY_EDITOR
+                TrackDependency(serviceType);
+#endif
                 service = factory();
                 return true;
             }

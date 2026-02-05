@@ -6,7 +6,7 @@ namespace EthanToolBox.Editor
 {
     public static class DIEditorMenu
     {
-        [MenuItem("EthanToolBox/Setup DI")]
+        [MenuItem("EthanToolBox/Injection/Setup DI")]
         public static void SetupDI()
         {
             var existingRoot = UnityEngine.Object.FindFirstObjectByType<DICompositionRoot>();
