@@ -51,7 +51,7 @@ sequenceDiagram
 **Démarrage Rapide :**
 
 1. **Configurer DI dans la Scène :**
-   - Dans l'éditeur Unity, allez dans **EthanToolBox > Setup DI**.
+   - Dans l'éditeur Unity, allez dans **EthanToolBox > Injection > Setup DI**.
    - Cela créera automatiquement un GameObject `DICompositionRoot` avec le composant `DefaultCompositionRoot`.
 
 2. **Créer un Service :**
@@ -199,14 +199,35 @@ public class DynamicUI : MonoBehaviour
 #### Fenêtre de Debug
 Une fenêtre Editor stylisée pour visualiser tous les services enregistrés.
 
-**Accès :** `Tools > EthanToolBox > DI Debug Window`
+**Accès :** `EthanToolBox > Injection > Debug Injection Panel`
 
 **Fonctionnalités :**
-- 🎨 Thème sombre moderne avec couleurs d'accent
-- 📊 Stats en direct (Services, MonoBehaviours, Classes)
-- 🔍 Recherche et filtrage des services
-- 📌 Ping des services MonoBehaviour dans la Hiérarchie
-- 🟢 Indicateur Live en mode Play
+- 🎨 **Interface Moderne** : Vue divisée avec liste et inspecteur.
+- 🔗 **Graphe de Dépendance** : Visualise les relations "Dépend de" et "Utilisé par".
+- ⚡ **Profiler** : Affiche le temps d'initialisation (ms) pour détecter les services lents.
+- 🛡️ **Détection de Cycles** : Affiche une ALERTE ROUGE visuelle si une boucle infinie est détectée.
+- 🔍 **Inspecteur** : Visualisez les champs publics et lancez des méthodes ("Invoke") directement.
+- 📌 **Ping** : Localisez les services MonoBehaviour dans la scène.
+
+#### Optimisation des Performances (Lazy Injection)
+Pour les services lourds, utilisez `Lazy<T>` pour différer la création jusqu'au premier usage.
+
+```csharp
+public class Player : MonoBehaviour
+{
+    // Le service n'est PAS créé ici. Démarrage instantané.
+    [Inject] private Lazy<ReplaySystem> _replaySystem; 
+
+    public void OnReplay()
+    {
+        // Le service est créé ICI (une seule fois) lors de l'accès à .Value
+        _replaySystem.Value.StartReplay();
+    }
+}
+```
+
+> [!NOTE]
+> Toutes les fonctionnalités de debug (Graphe, Profiler, Tracking) sont **supprimées** du Build final (`#if UNITY_EDITOR`). Le jeu compile uniquement la logique d'injection pure pour une performance maximale.
 
 ### Audio Manager (Gestionnaire Audio)
 

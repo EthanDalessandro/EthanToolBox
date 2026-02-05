@@ -32,6 +32,8 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         private DICompositionRoot _compositionRoot;
         private List<ServiceInfo> _services = new List<ServiceInfo>();
         private Dictionary<Type, HashSet<Type>> _dependencyGraph;
+        private Dictionary<Type, double> _initTimes; // New
+        private List<string> _detectedCycles; // New
         
         private float _lastRefreshTime;
         private string _searchFilter = "";
@@ -43,7 +45,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
 
         // Layout
         private float _sidebarWidth = 300f;
-        private bool _isResizing;
 
         private class ServiceInfo
         {
@@ -51,13 +52,14 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             public object Instance;
             public bool IsMonoBehaviour;
             public string DisplayName;
+            public double InitTimeMs; // New
         }
 
         [MenuItem("EthanToolBox/Injection/Debug Injection Panel")]
         public static void ShowWindow()
         {
             var window = GetWindow<DIDebugWindow>("DI Debug");
-            window.minSize = new Vector2(600, 400);
+            window.minSize = new Vector2(800, 500);
             window.Show();
         }
 
@@ -149,6 +151,21 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             InitStyles();
             DrawBackground();
 
+            // Cycle Alert Zone
+            if (_detectedCycles != null && _detectedCycles.Count > 0)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                GUI.backgroundColor = Color.red;
+                EditorGUILayout.LabelField("🚨 CIRCULAR DEPENDENCIES DETECTED!", EditorStyles.whiteBoldLabel);
+                GUI.backgroundColor = Color.white;
+                foreach (var cycle in _detectedCycles)
+                {
+                    EditorGUILayout.LabelField(cycle, EditorStyles.wordWrappedLabel);
+                }
+                EditorGUILayout.EndVertical();
+                GUILayout.Space(5);
+            }
+
             EditorGUILayout.BeginHorizontal();
             {
                 // Left Panel: Service List
@@ -185,8 +202,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
                 RefreshServices(false); // Silent refresh
                 _lastRefreshTime = Time.realtimeSinceStartup;
             }
-            
-            HandleResize();
         }
 
         private void DrawBackground()
@@ -201,7 +216,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             GUILayout.Label("⚡ Services", _headerStyle);
             if (Application.isPlaying)
             {
-                EditorGUILayout.HelpBox($"Active Services: {_services.Count}", MessageType.Info);
+                EditorGUILayout.HelpBox($"Active: {_services.Count}", MessageType.Info);
             }
             else
             {
@@ -242,12 +257,20 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
                 // Draw Icon & Text over button
                 var rect = GUILayoutUtility.GetLastRect();
                 var iconRect = new Rect(rect.x + 5, rect.y + 7, 16, 16);
-                var labelRect = new Rect(rect.x + 25, rect.y, rect.width - 25, rect.height);
+                var labelRect = new Rect(rect.x + 25, rect.y, rect.width - 25 - 60, rect.height);
+                var timeRect = new Rect(rect.width - 55, rect.y, 50, rect.height);
                 
                 var iconColor = service.IsMonoBehaviour ? MonoBehaviourColor : ClassColor;
                 EditorGUI.DrawRect(iconRect, iconColor); // Placeholder for icon
 
                 GUI.Label(labelRect, service.DisplayName, _serviceStyle);
+                
+                // Draw Init Time
+                var timeColor = service.InitTimeMs > 10 ? Color.red : (service.InitTimeMs > 1 ? Color.yellow : Color.green);
+                var oldColor = GUI.contentColor;
+                GUI.contentColor = timeColor;
+                GUI.Label(timeRect, $"{service.InitTimeMs:F2}ms", _labelStyle);
+                GUI.contentColor = oldColor;
 
                 EditorGUILayout.EndHorizontal();
             }
@@ -259,14 +282,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         {
             var rect = EditorGUILayout.GetControlRect(GUILayout.Width(2), GUILayout.ExpandHeight(true));
             EditorGUI.DrawRect(rect, SplitterColor);
-            
-            // Interaction logic for resizing
              EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeHorizontal);
-        }
-        
-        private void HandleResize()
-        {
-             // Simple resize logic could go here if needed, keeping it fixed-ish for simplicity in V1
         }
 
         private void DrawEmptyInspector()
@@ -285,6 +301,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             EditorGUILayout.BeginVertical("Box");
             GUILayout.Label(service.DisplayName, _headerStyle);
             GUILayout.Label(service.ServiceType.FullName, EditorStyles.miniLabel);
+            EditorGUILayout.LabelField($"Initialization Time: {service.InitTimeMs:F4} ms");
             EditorGUILayout.EndVertical();
 
             GUILayout.Space(10);
@@ -293,8 +310,13 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             DrawDependenciesSection(service);
 
             GUILayout.Space(20);
+            
+            // 2. Methods (New)
+            DrawMethodsSection(service);
 
-            // 2. Object Inspector (Reflection)
+            GUILayout.Space(20);
+
+            // 3. Object Inspector (Reflection)
             DrawReflectionInspector(service);
 
             EditorGUILayout.EndScrollView();
@@ -340,6 +362,36 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             else
             {
                 GUILayout.Label("  (None detected)", EditorStyles.miniLabel);
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawMethodsSection(ServiceInfo service)
+        {
+            GUILayout.Label("🎮 Live Methods", _subHeaderStyle);
+            EditorGUILayout.BeginVertical("HelpBox");
+
+            var methods = service.ServiceType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => m.GetParameters().Length == 0 && m.ReturnType == typeof(void));
+
+            bool any = false;
+            foreach (var method in methods)
+            {
+                any = true;
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label(method.Name, _labelStyle);
+                if (GUILayout.Button("Invoke", GUILayout.Width(60)))
+                {
+                    method.Invoke(service.Instance, null);
+                    Debug.Log($"[DI Debug] Invoked {method.Name} on {service.DisplayName}");
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+
+            if (!any)
+            {
+                GUILayout.Label("No parameterless public methods found.", EditorStyles.miniLabel);
             }
 
             EditorGUILayout.EndVertical();
@@ -421,8 +473,6 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
         {
             if (!Application.isPlaying) return;
 
-            // Only rebuild list if count changed (basic check)
-            // Ideally we'd do a more robust check or event-based
             _compositionRoot = FindFirstObjectByType<DICompositionRoot>();
             if (_compositionRoot == null) return;
 
@@ -434,22 +484,30 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             var container = containerField.GetValue(_compositionRoot) as DIContainer;
             if (container == null) return;
 
-            // Update dependency graph ref
+            // Updated Data Extraction
             _dependencyGraph = container.DependencyGraph;
+            _initTimes = container.InitializationTimes;
+            _detectedCycles = container.DetectedCycles;
 
-            // If first load or validation needed
             if (_services.Count == 0 || forceRepaint)
             {
                 _services.Clear();
                 foreach (var type in container.GetAllRegisteredTypes())
                 {
                     var instance = container.GetInstance(type);
+                    double initTime = 0;
+                    if (_initTimes != null && _initTimes.TryGetValue(type, out var t))
+                    {
+                        initTime = t;
+                    }
+
                     _services.Add(new ServiceInfo
                     {
                         ServiceType = type,
                         Instance = instance,
                         IsMonoBehaviour = typeof(MonoBehaviour).IsAssignableFrom(type),
-                        DisplayName = type.Name
+                        DisplayName = type.Name,
+                        InitTimeMs = initTime
                     });
                 }
 

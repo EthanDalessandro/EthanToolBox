@@ -8,6 +8,15 @@ namespace EthanToolBox.Core.DependencyInjection
     {
         private readonly Dictionary<Type, Func<object>> _registrations = new Dictionary<Type, Func<object>>();
         
+#if UNITY_EDITOR
+        // --- Editor Data ---
+        // Profiling Data: Type -> Initialization Time (ms)
+        public Dictionary<Type, double> InitializationTimes { get; private set; } = new Dictionary<Type, double>();
+
+        // Cycle Detection Data: List of circular paths detected
+        public List<string> DetectedCycles { get; private set; } = new List<string>();
+#endif
+        
         // --- Dependency Graph Data ---
 #if UNITY_EDITOR
         // Key: Consumer Type, Value: List of Dependencies (Types that yielded an instance)
@@ -19,6 +28,18 @@ namespace EthanToolBox.Core.DependencyInjection
         // Called by Injector or Resolve recursively
         public void BeginContext(Type consumerType)
         {
+            // Cycle Detection
+            if (_resolutionStack.Contains(consumerType))
+            {
+                var cyclePath = string.Join(" -> ", _resolutionStack.Reverse().Select(t => t.Name)) + " -> " + consumerType.Name;
+                
+#if UNITY_EDITOR
+                DetectedCycles.Add(cyclePath);
+                UnityEngine.Debug.LogError($"[DI] Circular dependency detected: {cyclePath}");
+#endif
+                throw new InvalidOperationException($"[DI] Circular dependency detected: {cyclePath}");
+            }
+
             _resolutionStack.Push(consumerType);
             if (!DependencyGraph.ContainsKey(consumerType))
             {
@@ -78,8 +99,18 @@ namespace EthanToolBox.Core.DependencyInjection
             {
 #if UNITY_EDITOR
                 TrackDependency(serviceType);
-#endif
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var result = factory();
+                sw.Stop();
+
+                if (!InitializationTimes.ContainsKey(serviceType))
+                {
+                    InitializationTimes[serviceType] = sw.Elapsed.TotalMilliseconds;
+                }
+                return result;
+#else
                 return factory();
+#endif
             }
 
             throw new Exception($"Service of type {serviceType.Name} is not registered.");
@@ -124,9 +155,19 @@ namespace EthanToolBox.Core.DependencyInjection
             {
 #if UNITY_EDITOR
                 TrackDependency(serviceType);
-#endif
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                service = factory();
+                sw.Stop();
+                
+                if (!InitializationTimes.ContainsKey(serviceType))
+                {
+                    InitializationTimes[serviceType] = sw.Elapsed.TotalMilliseconds;
+                }
+                return true;
+#else
                 service = factory();
                 return true;
+#endif
             }
             service = null;
             return false;

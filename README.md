@@ -52,7 +52,7 @@ sequenceDiagram
 **Quick Start:**
 
 1. **Setup DI in Scene:**
-   - In the Unity Editor, go to **EthanToolBox > Setup DI**.
+   - In the Unity Editor, go to **EthanToolBox > Injection > Setup DI**.
    - This will automatically create a `DICompositionRoot` GameObject with the `DefaultCompositionRoot` component.
 
 2. **Create a Service:**
@@ -200,14 +200,35 @@ public class DynamicUI : MonoBehaviour
 #### Debug Window
 A stylish Editor window to visualize all registered services.
 
-**Access:** `Tools > EthanToolBox > DI Debug Window`
+**Access:** `EthanToolBox > Injection > Debug Injection Panel`
 
 **Features:**
-- 🎨 Modern dark theme with accent colors
-- 📊 Live stats (Services, MonoBehaviours, Classes)
-- 🔍 Search and filter services
-- 📌 Ping MonoBehaviour services in the Hierarchy
-- 🟢 Live indicator when in Play Mode
+- 🎨 **Modern Interface**: Split view with list and inspector.
+- 🔗 **Dependency Graph**: Visualizes "Depends On" and "Used By" relationships.
+- ⚡ **Profiler**: Shows initialization time (ms) to detect slow services.
+- 🛡️ **Cycle Detection**: Visual RED ALERT if circular dependencies are found.
+- 🔍 **Inspector**: View public fields/properties and invoke parameterless methods directly.
+- 📌 **Ping**: Locate MonoBehaviour services in the scene.
+
+#### Performance Optimization (Lazy Injection)
+For heavy services, use `Lazy<T>` to defer creation until the first access.
+
+```csharp
+public class Player : MonoBehaviour
+{
+    // The service is NOT created here. Instant startup.
+    [Inject] private Lazy<HeavyService> _heavyService; 
+
+    public void OpenMenu()
+    {
+        // The service is created HERE (only once) when using .Value
+        _heavyService.Value.Open();
+    }
+}
+```
+
+> [!NOTE]
+> All debug features (Graph, Profiler, Tracking) are **stripped** from the build (`#if UNITY_EDITOR`). The build contains only pure, high-performance injection logic.
 
 ### Audio Manager
 
