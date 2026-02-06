@@ -351,11 +351,11 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
 
         private void DrawDependenciesSection(ServiceInfo service)
         {
-            GUILayout.Label("🔗 Dependency Graph", _subHeaderStyle);
+            GUILayout.Label("🔗 Graphe de Dépendances", _subHeaderStyle);
             EditorGUILayout.BeginVertical("HelpBox");
 
             // Dependencies (What this service uses)
-            GUILayout.Label("Depends On:", EditorStyles.boldLabel);
+            GUILayout.Label("Injecte:", EditorStyles.boldLabel);
             if (_dependencyGraph != null && _dependencyGraph.TryGetValue(service.ServiceType, out var dependencies) && dependencies.Count > 0)
             {
                 foreach (var depType in dependencies)
@@ -368,13 +368,13 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             }
             else
             {
-                GUILayout.Label("  (None detected at resolution time)", EditorStyles.miniLabel);
+                GUILayout.Label("  (Aucune dépendance détectée)", EditorStyles.miniLabel);
             }
 
             GUILayout.Space(10);
 
             // Consumers (Who uses this service)
-            GUILayout.Label("Used By:", EditorStyles.boldLabel);
+            GUILayout.Label("Injecté par:", EditorStyles.boldLabel);
             var consumers = GetConsumers(service.ServiceType);
             if (consumers.Count > 0)
             {
@@ -388,7 +388,7 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             }
             else
             {
-                GUILayout.Label("  (None detected)", EditorStyles.miniLabel);
+                GUILayout.Label("  (Aucun consommateur détecté)", EditorStyles.miniLabel);
             }
 
             EditorGUILayout.EndVertical();

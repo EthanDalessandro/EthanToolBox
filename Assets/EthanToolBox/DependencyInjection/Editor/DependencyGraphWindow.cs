@@ -303,12 +303,14 @@ namespace EthanToolBox.Core.DependencyInjection.Editor
             string info = "";
             if (outCount > 0 || inCount > 0)
             {
-                if (outCount > 0) info += $"→ {outCount} deps";
-                if (inCount > 0) info += (info.Length > 0 ? "  •  " : "") + $"← {inCount} users";
+                // outCount = services THIS node needs (injects)
+                // inCount = services that need THIS node (inject this)
+                if (outCount > 0) info += $"Injecte: {outCount}";
+                if (inCount > 0) info += (info.Length > 0 ? "  •  " : "") + $"Injecté par: {inCount}";
             }
             else
             {
-                info = "No connections";
+                info = "Aucune connexion";
             }
             
             Rect infoRect = new Rect(rect.x + 5, rect.y + rect.height - 22, rect.width - 10, 18);
