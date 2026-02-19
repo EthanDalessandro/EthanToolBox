@@ -23,11 +23,11 @@ namespace EthanToolBox.Core.DependencyInjection
             try
             {
                 // Iterate over all loaded assemblies to find Assembly-CSharp
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    if (asm.GetName().Name == "Assembly-CSharp")
+                    if (assembly.GetName().Name == "Assembly-CSharp")
                     {
-                        assemblyCSharp = asm;
+                        assemblyCSharp = assembly;
                         break;
                     }
                 }

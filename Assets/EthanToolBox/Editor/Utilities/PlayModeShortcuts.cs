@@ -5,7 +5,6 @@ namespace EthanToolBox.Editor.Utilities
 {
     public static class PlayModeShortcuts
     {
-        // Default shortcut is F5. Users can rebind this in Edit > Shortcuts.
         [MenuItem("EthanToolBox/Shortcuts/Play and Maximize _F1")]
         public static void PlayAndMaximize()
         {

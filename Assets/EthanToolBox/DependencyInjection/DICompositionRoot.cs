@@ -8,15 +8,15 @@ namespace EthanToolBox.Core.DependencyInjection
     public abstract class DICompositionRoot : MonoBehaviour
     {
         // Track all active roots to find parents/contexts
-        private static readonly List<DICompositionRoot> _activeRoots = new List<DICompositionRoot>();
-        private static HashSet<int> _injectedInstances = new HashSet<int>();
+        private static readonly List<DICompositionRoot> _activeRoots = new();
+        private static HashSet<int> _injectedInstances = new();
 
         [Header("Context Settings")]
         [Tooltip("If true, this Root will persist across scenes and act as a Global Parent.")]
         [SerializeField] private bool _isGlobal = false;
 
-        public DIContainer Container { get; protected set; } // Changed to public for lookup
-        public Injector Injector { get; protected set; }     // Changed to public
+        public DIContainer Container { get; protected set; }
+        public Injector Injector { get; protected set; }
 
         protected virtual void Awake()
         {
@@ -33,7 +33,7 @@ namespace EthanToolBox.Core.DependencyInjection
 
             _activeRoots.Add(this);
 
-            // 1. Find Parent Container (Global)
+            // 1. Find Parent Container
             DIContainer parentContainer = null;
             if (!_isGlobal)
             {
@@ -44,13 +44,13 @@ namespace EthanToolBox.Core.DependencyInjection
                 }
             }
 
-            // 2. Create Container (with optional parent)
+            // 2. Create Container
             Container = new DIContainer(parentContainer);
             Injector = new Injector(Container);
             _injectedInstances.Clear();
 
             // Default Registrations
-            Container.RegisterSingleton(typeof(EthanToolBox.Core.EventSystem.IEventBus), new EthanToolBox.Core.EventSystem.EventBus());
+            Container.RegisterSingleton(typeof(EventSystem.IEventBus), new EventSystem.EventBus());
 
             // 3. Configure & Register
             Configure(Container);
@@ -108,154 +108,106 @@ namespace EthanToolBox.Core.DependencyInjection
             return _activeRoots.Find(r => r._isGlobal);
         }
 
-        #region Spawn (with Pooling)
+        #region Spawn
 
         /// <summary>
         /// Spawns a prefab (from pool if available) and automatically injects all [Inject] dependencies.
         /// </summary>
         public static T Spawn<T>(T prefab) where T : Component
         {
-            var instance = Pooling.ObjectPool.Get(prefab.gameObject);
-            InjectIfNew(instance);
-            return instance.GetComponent<T>();
+            var instance = Instantiate(prefab);
+            InjectIfNew(instance.gameObject);
+            return instance;
         }
 
         /// <summary>
-        /// Spawns a prefab under a parent (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a prefab under a parent and automatically injects all [Inject] dependencies.
         /// </summary>
         public static T Spawn<T>(T prefab, Transform parent) where T : Component
         {
-            var instance = Pooling.ObjectPool.Get(prefab.gameObject, parent);
-            InjectIfNew(instance);
-            return instance.GetComponent<T>();
+            var instance = Instantiate(prefab, parent);
+            InjectIfNew(instance.gameObject);
+            return instance;
         }
 
         /// <summary>
-        /// Spawns a prefab under a parent (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a prefab under a parent and automatically injects all [Inject] dependencies.
         /// </summary>
         public static T Spawn<T>(T prefab, Transform parent, bool worldPositionStays) where T : Component
         {
-            var instance = Pooling.ObjectPool.Get(prefab.gameObject, parent, worldPositionStays);
-            InjectIfNew(instance);
-            return instance.GetComponent<T>();
+            var instance = Instantiate(prefab, parent, worldPositionStays);
+            InjectIfNew(instance.gameObject);
+            return instance;
         }
 
         /// <summary>
-        /// Spawns a prefab at position/rotation (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a prefab at position/rotation and automatically injects all [Inject] dependencies.
         /// </summary>
         public static T Spawn<T>(T prefab, Vector3 position, Quaternion rotation) where T : Component
         {
-            var instance = Pooling.ObjectPool.Get(prefab.gameObject, position, rotation);
-            InjectIfNew(instance);
-            return instance.GetComponent<T>();
+            var instance = Instantiate(prefab, position, rotation);
+            InjectIfNew(instance.gameObject);
+            return instance;
         }
 
         /// <summary>
-        /// Spawns a prefab at position/rotation under a parent (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a prefab at position/rotation under a parent and automatically injects all [Inject] dependencies.
         /// </summary>
         public static T Spawn<T>(T prefab, Vector3 position, Quaternion rotation, Transform parent) where T : Component
         {
-            var instance = Pooling.ObjectPool.Get(prefab.gameObject, position, rotation, parent);
-            InjectIfNew(instance);
-            return instance.GetComponent<T>();
+            var instance = Instantiate(prefab, position, rotation, parent);
+            InjectIfNew(instance.gameObject);
+            return instance;
         }
 
         /// <summary>
-        /// Spawns a GameObject prefab (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a GameObject prefab and automatically injects all [Inject] dependencies.
         /// </summary>
         public static GameObject Spawn(GameObject prefab)
         {
-            var instance = Pooling.ObjectPool.Get(prefab);
+            var instance = Instantiate(prefab);
             InjectIfNew(instance);
             return instance;
         }
 
         /// <summary>
-        /// Spawns a GameObject prefab under a parent (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a GameObject prefab under a parent and automatically injects all [Inject] dependencies.
         /// </summary>
         public static GameObject Spawn(GameObject prefab, Transform parent)
         {
-            var instance = Pooling.ObjectPool.Get(prefab, parent);
+            var instance = Instantiate(prefab, parent);
             InjectIfNew(instance);
             return instance;
         }
 
         /// <summary>
-        /// Spawns a GameObject prefab under a parent (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a GameObject prefab under a parent and automatically injects all [Inject] dependencies.
         /// </summary>
         public static GameObject Spawn(GameObject prefab, Transform parent, bool worldPositionStays)
         {
-            var instance = Pooling.ObjectPool.Get(prefab, parent, worldPositionStays);
+            var instance = Instantiate(prefab, parent, worldPositionStays);
             InjectIfNew(instance);
             return instance;
         }
 
         /// <summary>
-        /// Spawns a GameObject prefab at position/rotation (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a GameObject prefab at position/rotation and automatically injects all [Inject] dependencies.
         /// </summary>
         public static GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation)
         {
-            var instance = Pooling.ObjectPool.Get(prefab, position, rotation);
+            var instance = Instantiate(prefab, position, rotation);
             InjectIfNew(instance);
             return instance;
         }
 
         /// <summary>
-        /// Spawns a GameObject prefab at position/rotation under a parent (from pool if available) and automatically injects all [Inject] dependencies.
+        /// Spawns a GameObject prefab at position/rotation under a parent and automatically injects all [Inject] dependencies.
         /// </summary>
         public static GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent)
         {
-            var instance = Pooling.ObjectPool.Get(prefab, position, rotation, parent);
+            var instance = Instantiate(prefab, position, rotation, parent);
             InjectIfNew(instance);
             return instance;
-        }
-
-        #endregion
-
-        #region Release & Prewarm
-
-        /// <summary>
-        /// Returns an object to the pool (instead of Destroy). Object will be deactivated and reused.
-        /// </summary>
-        public static void Release(GameObject instance)
-        {
-            Pooling.ObjectPool.Return(instance);
-        }
-
-        /// <summary>
-        /// Returns an object to the pool (instead of Destroy). Object will be deactivated and reused.
-        /// </summary>
-        public static void Release(Component instance)
-        {
-            if (instance != null)
-                Pooling.ObjectPool.Return(instance.gameObject);
-        }
-
-        /// <summary>
-        /// Pre-creates instances in the pool for better performance at runtime.
-        /// </summary>
-        public static void Prewarm(GameObject prefab, int count)
-        {
-            Pooling.ObjectPool.Prewarm(prefab, count);
-            
-            // Inject all pre-created instances
-            // (They are inactive under the pool root, but we can find them)
-        }
-
-        /// <summary>
-        /// Pre-creates instances in the pool for better performance at runtime.
-        /// </summary>
-        public static void Prewarm<T>(T prefab, int count) where T : Component
-        {
-            Prewarm(prefab.gameObject, count);
-        }
-
-        /// <summary>
-        /// Clears all pools and destroys pooled objects.
-        /// </summary>
-        public static void ClearAllPools()
-        {
-            Pooling.ObjectPool.ClearAll();
         }
 
         #endregion
@@ -265,7 +217,7 @@ namespace EthanToolBox.Core.DependencyInjection
             var monoBehaviours = instance.GetComponentsInChildren<MonoBehaviour>(true);
             foreach (var mb in monoBehaviours)
             {
-                // Only inject if not already injected (pool reuse)
+                // Only inject if not already injected
                 RequestInjection(mb);
             }
         }
@@ -289,17 +241,12 @@ namespace EthanToolBox.Core.DependencyInjection
                     {
                         var serviceType = attribute.ServiceType ?? type;
 
-                        // Only register if not already registered (to avoid Global vs Scene conflicts? Or override?)
-                        // Strategy: Local overrides Parent.
-                        // But here we are registering.
-                        
                         if (typeof(MonoBehaviour).IsAssignableFrom(type))
                         {
-                            // MB Service: Only register if it exists in THIS scene (or Global if we are Global)
                             // FindObjectsByType finds ALL scenes. We need to filter.
-                            
+
                             var instances = FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None);
-                            foreach(var obj in instances) 
+                            foreach (var obj in instances)
                             {
                                 var comp = obj as Component;
                                 if (comp != null && comp.gameObject.scene == gameObject.scene)
@@ -308,20 +255,17 @@ namespace EthanToolBox.Core.DependencyInjection
                                     break; // Assume 1 per scene for now
                                 }
                             }
-                            
-                            // If not found and we are supposed to create it? 
-                            // Current logic only created new GO if not found.
-                            // We should probably only create it if we are the rightful owner.
+
                             if (!container.IsRegistered(serviceType))
                             {
                                 // Only create if we couldn't find it
                                 if (instances.Length == 0) // Strictly no instance 
                                 {
-                                   var go = new GameObject(type.Name);
-                                   // Ensure it spawns in our scene
-                                   UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, gameObject.scene);
-                                   var instance = go.AddComponent(type);
-                                   container.RegisterSingleton(serviceType, instance);
+                                    var go = new GameObject(type.Name);
+                                    // Ensure it spawns in our scene
+                                    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, gameObject.scene);
+                                    var instance = go.AddComponent(type);
+                                    container.RegisterSingleton(serviceType, instance);
                                 }
                             }
                         }

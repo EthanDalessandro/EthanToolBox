@@ -4,76 +4,15 @@ using System.Linq;
 
 namespace EthanToolBox.Core.DependencyInjection
 {
-    public class DIContainer
+    public partial class DIContainer
     {
-        private readonly Dictionary<Type, Func<object>> _registrations = new Dictionary<Type, Func<object>>();
+        private readonly Dictionary<Type, Func<object>> _registrations = new();
         private readonly DIContainer _parentContainer;
 
         public DIContainer(DIContainer parent = null)
         {
             _parentContainer = parent;
         }
-        
-#if UNITY_EDITOR
-        // --- Editor Data ---
-        // Profiling Data: Type -> Initialization Time (ms)
-        public Dictionary<Type, double> InitializationTimes { get; private set; } = new Dictionary<Type, double>();
-
-        // Cycle Detection Data: List of circular paths detected
-        public List<string> DetectedCycles { get; private set; } = new List<string>();
-
-        // Duplicate Registration Warnings
-        public List<string> DuplicateWarnings { get; private set; } = new List<string>();
-#endif
-        
-        // --- Dependency Graph Data ---
-#if UNITY_EDITOR
-        // Key: Consumer Type, Value: List of Dependencies (Types that yielded an instance)
-        public Dictionary<Type, HashSet<Type>> DependencyGraph { get; private set; } = new Dictionary<Type, HashSet<Type>>();
-        
-        // Track the current resolution context (who is asking for a dependency?)
-        private Stack<Type> _resolutionStack = new Stack<Type>();
-
-        // Called by Injector or Resolve recursively
-        public void BeginContext(Type consumerType)
-        {
-            // Cycle Detection
-            if (_resolutionStack.Contains(consumerType))
-            {
-                var cyclePath = string.Join(" -> ", _resolutionStack.Reverse().Select(t => t.Name)) + " -> " + consumerType.Name;
-                
-#if UNITY_EDITOR
-                DetectedCycles.Add(cyclePath);
-                UnityEngine.Debug.LogError($"[DI] Circular dependency detected: {cyclePath}");
-#endif
-                throw new InvalidOperationException($"[DI] Circular dependency detected: {cyclePath}");
-            }
-
-            _resolutionStack.Push(consumerType);
-            if (!DependencyGraph.ContainsKey(consumerType))
-            {
-                DependencyGraph[consumerType] = new HashSet<Type>();
-            }
-        }
-
-        public void EndContext()
-        {
-            if (_resolutionStack.Count > 0)
-                _resolutionStack.Pop();
-        }
-
-        private void TrackDependency(Type resolvedServiceType)
-        {
-            if (_resolutionStack.Count > 0)
-            {
-                var consumer = _resolutionStack.Peek();
-                if (DependencyGraph.ContainsKey(consumer))
-                {
-                    DependencyGraph[consumer].Add(resolvedServiceType);
-                }
-            }
-        }
-#endif
 
         public void RegisterSingleton<TService>(TService instance)
         {
@@ -99,42 +38,22 @@ namespace EthanToolBox.Core.DependencyInjection
 
         public void RegisterSingleton(Type serviceType, object instance)
         {
-#if UNITY_EDITOR
-            if (_registrations.ContainsKey(serviceType))
-            {
-                var warning = $"Duplicate registration for {serviceType.Name}";
-                DuplicateWarnings.Add(warning);
-                UnityEngine.Debug.LogWarning($"[DI] {warning}");
-            }
-#endif
+            CheckDuplicateRegistration(serviceType);
             _registrations[serviceType] = () => instance;
         }
-
-
 
         public object Resolve(Type serviceType)
         {
             if (_registrations.TryGetValue(serviceType, out var factory))
             {
-#if UNITY_EDITOR
-                TrackDependency(serviceType);
-                var sw = System.Diagnostics.Stopwatch.StartNew();
+                OnResolveStart(serviceType);
                 var result = factory();
-                sw.Stop();
-
-                if (!InitializationTimes.ContainsKey(serviceType))
-                {
-                    InitializationTimes[serviceType] = sw.Elapsed.TotalMilliseconds;
-                }
+                OnResolveEnd(serviceType);
                 return result;
-#else
-                return factory();
-#endif
             }
 
             if (_parentContainer != null)
             {
-                // We don't track parent dependencies in this container's graph/profiler to avoid duplication/confusion
                 return _parentContainer.Resolve(serviceType);
             }
 
@@ -146,9 +65,6 @@ namespace EthanToolBox.Core.DependencyInjection
             return (TService)Resolve(typeof(TService));
         }
 
-        /// <summary>
-        /// Check if a service type is registered.
-        /// </summary>
         public bool IsRegistered<TService>()
         {
             return IsRegistered(typeof(TService));
@@ -159,10 +75,6 @@ namespace EthanToolBox.Core.DependencyInjection
             return _registrations.ContainsKey(serviceType) || (_parentContainer != null && _parentContainer.IsRegistered(serviceType));
         }
 
-        /// <summary>
-        /// Try to resolve a service without throwing an exception.
-        /// Returns true if successful, false if not registered.
-        /// </summary>
         public bool TryResolve<TService>(out TService service)
         {
             if (TryResolve(typeof(TService), out var obj))
@@ -178,23 +90,12 @@ namespace EthanToolBox.Core.DependencyInjection
         {
             if (_registrations.TryGetValue(serviceType, out var factory))
             {
-#if UNITY_EDITOR
-                TrackDependency(serviceType);
-                var sw = System.Diagnostics.Stopwatch.StartNew();
+                OnResolveStart(serviceType);
                 service = factory();
-                sw.Stop();
-                
-                if (!InitializationTimes.ContainsKey(serviceType))
-                {
-                    InitializationTimes[serviceType] = sw.Elapsed.TotalMilliseconds;
-                }
+                OnResolveEnd(serviceType);
                 return true;
-#else
-                service = factory();
-                return true;
-#endif
             }
-            
+
             if (_parentContainer != null)
             {
                 return _parentContainer.TryResolve(serviceType, out service);
@@ -204,9 +105,6 @@ namespace EthanToolBox.Core.DependencyInjection
             return false;
         }
 
-        /// <summary>
-        /// Resolve all services that are assignable to the given type.
-        /// </summary>
         public List<T> ResolveAll<T>()
         {
             var results = new List<T>();
@@ -216,7 +114,10 @@ namespace EthanToolBox.Core.DependencyInjection
             {
                 if (targetType.IsAssignableFrom(kvp.Key))
                 {
+                    OnResolveStart(kvp.Key);
                     var instance = kvp.Value();
+                    OnResolveEnd(kvp.Key);
+
                     if (instance is T typed)
                     {
                         results.Add(typed);
@@ -226,17 +127,11 @@ namespace EthanToolBox.Core.DependencyInjection
             return results;
         }
 
-        /// <summary>
-        /// Get all registered service types. Used for debugging.
-        /// </summary>
         public IEnumerable<Type> GetAllRegisteredTypes()
         {
             return _registrations.Keys;
         }
 
-        /// <summary>
-        /// Get the instance for a registered type. Used for debugging.
-        /// </summary>
         public object GetInstance(Type serviceType)
         {
             if (_registrations.TryGetValue(serviceType, out var factory))
@@ -246,7 +141,100 @@ namespace EthanToolBox.Core.DependencyInjection
             return null;
         }
 
+        partial void CheckDuplicateRegistration(Type serviceType);
+        partial void OnResolveStart(Type serviceType);
+        partial void OnResolveEnd(Type serviceType);
 
+        public void BeginContext(Type consumerType)
+        {
+            OnBeginContext(consumerType);
+        }
+
+        public void EndContext()
+        {
+            OnEndContext();
+        }
+
+        partial void OnBeginContext(Type consumerType);
+        partial void OnEndContext();
     }
+
+#if UNITY_EDITOR
+    public partial class DIContainer
+    {
+        // --- Data ---
+        public Dictionary<Type, double> InitializationTimes { get; private set; } = new Dictionary<Type, double>();
+        public List<string> DetectedCycles { get; private set; } = new List<string>();
+        public List<string> DuplicateWarnings { get; private set; } = new List<string>();
+        public Dictionary<Type, HashSet<Type>> DependencyGraph { get; private set; } = new Dictionary<Type, HashSet<Type>>();
+
+        // --- Internal State ---
+        private Stack<Type> _resolutionStack = new Stack<Type>();
+        private System.Diagnostics.Stopwatch _stopwatch;
+
+        // --- Implementations ---
+
+        partial void CheckDuplicateRegistration(Type serviceType)
+        {
+            if (_registrations.ContainsKey(serviceType))
+            {
+                var warning = $"Duplicate registration for {serviceType.Name}";
+                DuplicateWarnings.Add(warning);
+                UnityEngine.Debug.LogWarning($"[DI] {warning}");
+            }
+        }
+
+        partial void OnBeginContext(Type consumerType)
+        {
+            // Cycle Detection
+            if (_resolutionStack.Contains(consumerType))
+            {
+                var cyclePath = string.Join(" -> ", _resolutionStack.Reverse().Select(t => t.Name)) + " -> " + consumerType.Name;
+                DetectedCycles.Add(cyclePath);
+                UnityEngine.Debug.LogError($"[DI] Circular dependency detected: {cyclePath}");
+                throw new InvalidOperationException($"[DI] Circular dependency detected: {cyclePath}");
+            }
+
+            _resolutionStack.Push(consumerType);
+            if (!DependencyGraph.ContainsKey(consumerType))
+            {
+                DependencyGraph[consumerType] = new HashSet<Type>();
+            }
+        }
+
+        partial void OnEndContext()
+        {
+            if (_resolutionStack.Count > 0)
+                _resolutionStack.Pop();
+        }
+
+        partial void OnResolveStart(Type serviceType)
+        {
+            TrackDependency(serviceType);
+            _stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        }
+
+        partial void OnResolveEnd(Type serviceType)
+        {
+            _stopwatch?.Stop();
+            if (_stopwatch != null && !InitializationTimes.ContainsKey(serviceType))
+            {
+                InitializationTimes[serviceType] = _stopwatch.Elapsed.TotalMilliseconds;
+            }
+        }
+
+        private void TrackDependency(Type resolvedServiceType)
+        {
+            if (_resolutionStack.Count > 0)
+            {
+                var consumer = _resolutionStack.Peek();
+                if (DependencyGraph.ContainsKey(consumer))
+                {
+                    DependencyGraph[consumer].Add(resolvedServiceType);
+                }
+            }
+        }
+    }
+#endif
 }
 

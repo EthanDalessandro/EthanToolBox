@@ -382,31 +382,8 @@ When you spawn a prefab with `Instantiate()`, the new object's scripts are NOT i
 // Old way (No injection!)
 var enemy = Instantiate(enemyPrefab);
 
-// New way (Auto-injected + POOLED!)
+// New way (Auto-injected!)
 var enemy = DICompositionRoot.Spawn(enemyPrefab);
-```
-
-### 🎱 Object Pooling (Built-in)
-Spawn automatically uses object pooling. Just use `Release()` instead of `Destroy()`.
-
-```csharp
-// Spawn (from pool if available, else Instantiate)
-var bullet = DICompositionRoot.Spawn(bulletPrefab);
-
-// Release (back to pool instead of Destroy)
-DICompositionRoot.Release(bullet);
-
-// Optional: Pre-warm the pool at start
-DICompositionRoot.Prewarm(bulletPrefab, 50);
-```
-
-**Optional Callbacks:** Implement `IPoolable` for reset logic:
-```csharp
-public class Bullet : MonoBehaviour, IPoolable
-{
-    public void OnSpawn() { /* Reset state */ }
-    public void OnRelease() { /* Cleanup */ }
-}
 ```
 
 ### 📡 Event Bus (Decoupled Communication)
