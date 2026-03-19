@@ -118,7 +118,9 @@ namespace EthanToolBox.Core.Audio
         {
             if (data == null) return;
 
-            // UI sounds are usually 2D and ignore spatial settings often, but we respect SoundData
+            var clip = data.GetClip();
+            if (clip == null) return;
+
             var source = _pool.Get();
             ConfigureSource(source, data, _uiGroup);
             source.transform.position = transform.position;
