@@ -5,11 +5,13 @@ using UnityEngine;
 
 namespace EthanToolBox.Core.DependencyInjection
 {
+    // S'exécute avant tous les autres MonoBehaviours (Awake order = -1000)
     [DefaultExecutionOrder(-1000)]
     [AddComponentMenu("EthanToolBox/DI/DI Bootstrapper")]
     public class DIBootstrapper : MonoBehaviour
     {
-        private readonly Dictionary<Type, Func<object>> _services = new();
+        // Dictionnaire : Type → instance du service
+        private readonly Dictionary<Type, object> _services = new();
 
         private void Awake()
         {
@@ -19,78 +21,59 @@ namespace EthanToolBox.Core.DependencyInjection
 
         private void RegisterServices()
         {
-            var assemblies = new[] { GetType().Assembly, GetAssemblyCSharp() };
-
-            foreach (var assembly in assemblies)
+            // Parcourt tous les MonoBehaviours de la scène pour trouver les [Service]
+            foreach (MonoBehaviour mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (assembly == null) continue;
+                if (mb == this) continue;
 
-                foreach (var type in assembly.GetTypes())
-                {
-                    var attr = type.GetCustomAttribute<ServiceAttribute>();
-                    if (attr == null) continue;
+                //GetType retourne le type concret et getcustomattribute va venir chercher l'attribut en question
+                
+                ServiceAttribute attribute = mb.GetType().GetCustomAttribute<ServiceAttribute>();
+                if (attribute == null) continue;
 
-                    var key = attr.ServiceType ?? type;
-
-                    if (typeof(MonoBehaviour).IsAssignableFrom(type))
-                    {
-                        var found = FindFirstObjectByType(type) as Component;
-                        if (found == null)
-                        {
-                            var go = new GameObject(type.Name);
-                            found = go.AddComponent(type);
-                        }
-                        _services[key] = () => found;
-                    }
-                    else
-                    {
-                        var instance = Activator.CreateInstance(type);
-                        _services[key] = () => instance;
-                    }
-                }
+                // La clé = l'interface déclarée, ou le type lui-même si pas précisé
+                Type key = attribute.ServiceType ?? mb.GetType();
+                _services[key] = mb;
             }
         }
 
         private void InjectScene()
         {
-            var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+            // Flags pour accéder aux membres publics ET privés des instances
+            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
-            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            // Parcourt tous les MonoBehaviours de la scène (actifs et inactifs)
+            foreach (MonoBehaviour mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (mb == this) continue;
 
-                var type = mb.GetType();
+                Type type = mb.GetType();
 
-                foreach (var field in type.GetFields(flags))
+                //  Injection dans les fields 
+                foreach (FieldInfo field in type.GetFields(flags))
                 {
-                    var attr = field.GetCustomAttribute<InjectAttribute>();
-                    if (attr == null) continue;
+                    InjectAttribute attribute = field.GetCustomAttribute<InjectAttribute>();
+                    if (attribute == null) continue;
 
-                    if (_services.TryGetValue(field.FieldType, out var factory))
-                        field.SetValue(mb, factory());
-                    else if (!attr.Optional)
+                    if (_services.TryGetValue(field.FieldType, out object service))
+                        field.SetValue(mb, service); // Injecte l'instance dans le field
+                    else if (!attribute.Optional)
                         Debug.LogError($"[DI] {field.FieldType.Name} not registered (required by {type.Name}.{field.Name})");
                 }
 
-                foreach (var prop in type.GetProperties(flags))
+                //  Injection dans les properties 
+                foreach (PropertyInfo prop in type.GetProperties(flags))
                 {
                     if (!prop.CanWrite) continue;
-                    var attr = prop.GetCustomAttribute<InjectAttribute>();
-                    if (attr == null) continue;
+                    InjectAttribute attribute = prop.GetCustomAttribute<InjectAttribute>();
+                    if (attribute == null) continue;
 
-                    if (_services.TryGetValue(prop.PropertyType, out var factory))
-                        prop.SetValue(mb, factory());
-                    else if (!attr.Optional)
+                    if (_services.TryGetValue(prop.PropertyType, out object service))
+                        prop.SetValue(mb, service); // Injecte l'instance dans la property
+                    else if (!attribute.Optional)
                         Debug.LogError($"[DI] {prop.PropertyType.Name} not registered (required by {type.Name}.{prop.Name})");
                 }
             }
-        }
-
-        private static Assembly GetAssemblyCSharp()
-        {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                if (asm.GetName().Name == "Assembly-CSharp") return asm;
-            return null;
         }
     }
 }

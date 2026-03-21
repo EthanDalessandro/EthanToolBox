@@ -2,16 +2,14 @@ using System;
 
 namespace EthanToolBox.Core.DependencyInjection
 {
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class, Inherited = false)]
     public class ServiceAttribute : Attribute
     {
         public Type ServiceType { get; }
-        public bool Lazy { get; }
 
-        public ServiceAttribute(Type serviceType = null, bool lazy = true)
+        public ServiceAttribute(Type serviceType = null)
         {
             ServiceType = serviceType;
-            Lazy = lazy;
         }
     }
 }
