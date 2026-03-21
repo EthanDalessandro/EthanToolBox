@@ -9,19 +9,19 @@ namespace EthanToolBox.Editor
         [MenuItem("EthanToolBox/Injection/Setup DI")]
         public static void SetupDI()
         {
-            var existingRoot = UnityEngine.Object.FindFirstObjectByType<DICompositionRoot>();
-            if (existingRoot != null)
+            var existing = Object.FindFirstObjectByType<DIBootstrapper>();
+            if (existing != null)
             {
-                EditorUtility.DisplayDialog("Setup DI", $"DI Composition Root already exists: {existingRoot.gameObject.name}", "OK");
+                EditorUtility.DisplayDialog("Setup DI", $"DI Bootstrapper already exists: {existing.gameObject.name}", "OK");
                 return;
             }
 
-            var go = new GameObject("DICompositionRoot");
-            go.AddComponent<DefaultCompositionRoot>();
-            Undo.RegisterCreatedObjectUndo(go, "Create DI Composition Root");
+            var go = new GameObject("DIBootstrapper");
+            go.AddComponent<DIBootstrapper>();
+            Undo.RegisterCreatedObjectUndo(go, "Create DI Bootstrapper");
             Selection.activeGameObject = go;
 
-            Debug.Log("DI Composition Root created.");
+            Debug.Log("[DI] Bootstrapper created.");
         }
     }
 }

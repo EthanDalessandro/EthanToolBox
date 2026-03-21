@@ -2,7 +2,7 @@ using System;
 
 namespace EthanToolBox.Core.DependencyInjection
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class InjectAttribute : Attribute
     {
         /// <summary>
