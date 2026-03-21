@@ -1,6 +1,6 @@
 # EthanToolBox [![en](https://img.shields.io/badge/lang-en-green.svg)](README.md) [![fr](https://img.shields.io/badge/lang-fr-red.svg)](README.fr.md)
 
-Une boîte à outils légère pour Unity, incluant un système d'Injection de Dépendance simple.
+Une boîte à outils légère pour Unity, incluant un système d'Injection de Dépendance simple, un Gestionnaire Audio, une Gestion de Scènes, et des outils éditeur.
 
 ## Installation
 
@@ -17,61 +17,68 @@ Vous pouvez installer ce package directement depuis GitHub via le Unity Package 
 
 ## Fonctionnalités
 
+---
+
 ### Injection de Dépendance (DI)
 
-Un système DI léger pour gérer les dépendances de votre jeu.
+Un système DI léger pour gérer les dépendances de votre jeu sans framework externe.
 
-### Comment ça marche
+#### Comment ça marche
 
 ```mermaid
 sequenceDiagram
     participant Unity
-    participant Root as CompositionRoot
-    participant Container as DIContainer
-    participant Injector
+    participant Bootstrapper as DIBootstrapper
     participant Consumer as MonoBehaviour (Consumer)
 
-    Note over Unity, Root: Phase d'Initialisation
-    Unity->>Root: Awake()
-    Root->>Container: Enregistrer Services (Singleton/Transient)
-    
-    Note over Root, Consumer: Phase d'Injection
-    Root->>Root: Trouver tous les MonoBehaviours
+    Note over Unity, Bootstrapper: Phase d'Initialisation (Awake, ordre -1000)
+    Unity->>Bootstrapper: Awake()
+    Bootstrapper->>Bootstrapper: Scanner la scène pour les [Service]
+    Bootstrapper->>Bootstrapper: Enregistrer les services (Type → instance)
+
+    Note over Bootstrapper, Consumer: Phase d'Injection
+    Bootstrapper->>Bootstrapper: Parcourir tous les MonoBehaviours
     loop Pour chaque MonoBehaviour
-        Root->>Injector: Inject(Consumer)
-        Injector->>Consumer: Scanner attributs [Inject]
-        alt Champ trouvé
-            Injector->>Container: Resolve(ServiceType)
-            Container-->>Injector: Retourner Instance Service
-            Injector->>Consumer: Assigner Valeur Champ
+        Bootstrapper->>Consumer: Chercher les champs/propriétés [Inject]
+        alt Service trouvé
+            Bootstrapper->>Consumer: Assigner la valeur
+        else Service absent & non Optionnel
+            Bootstrapper->>Consumer: LogError
         end
     end
 ```
 
-**Démarrage Rapide :**
+#### Démarrage Rapide
 
 1. **Configurer DI dans la Scène :**
    - Dans l'éditeur Unity, allez dans **EthanToolBox > Injection > Setup DI**.
-   - Cela créera automatiquement un GameObject `DICompositionRoot` avec le composant `DefaultCompositionRoot`.
+   - Cela crée un GameObject `DIBootstrapper` dans votre scène.
 
 2. **Créer un Service :**
-   Ajoutez l'attribut `[Service]` à votre classe.
+   Ajoutez l'attribut `[Service]` à votre MonoBehaviour.
    ```csharp
    using EthanToolBox.Core.DependencyInjection;
 
-   [Service] // Enregistre automatiquement cette classe
-   public class MyService
+   [Service] // Enregistre automatiquement ce MonoBehaviour
+   public class MyService : MonoBehaviour
    {
        public void DoSomething() => Debug.Log("Bonjour !");
    }
    ```
 
-3. **Injecter dans un MonoBehaviour :**
-   Ajoutez l'attribut `[Inject]` au champ que vous voulez remplir.
+3. **Enregistrer sous une Interface :**
+   Passez le type d'interface à `[Service]` pour l'enregistrer par interface.
+   ```csharp
+   [Service(typeof(IMyService))]
+   public class MyService : MonoBehaviour, IMyService { }
+   ```
+
+4. **Injecter dans un MonoBehaviour :**
+   Ajoutez `[Inject]` à tout champ ou propriété que vous souhaitez remplir.
    ```csharp
    public class Player : MonoBehaviour
    {
-       [Inject] private MyService _myService;
+       [Inject] private IMyService _myService;
 
        private void Start()
        {
@@ -80,218 +87,133 @@ sequenceDiagram
    }
    ```
 
-4. **(Optionnel) Installateur Personnalisé :**
-   Si vous avez besoin d'une configuration spécifique, vous pouvez hériter de `DICompositionRoot`.
-   ```csharp
-   public class GameInstaller : DICompositionRoot
-   {
-       protected override void Configure(DIContainer container)
-       {
-           // Enregistrement manuel
-           // container.RegisterSingleton<OtherService>(new OtherService());
-       }
-   }
-   ```
+#### Injection Optionnelle
 
+Gérez les services manquants sans erreur :
+```csharp
+public class Analytics : MonoBehaviour
+{
+    [Inject(Optional = true)]
+    private IAnalyticsService _analytics; // null si non enregistré — aucune erreur
 
+    public void Track(string eventName)
+    {
+        _analytics?.TrackEvent(eventName);
+    }
+}
+```
 
-### Caractéristiques du Système
+#### Caractéristiques du Système
 
 **Quand utiliser ce système DI ?**
-Ce système est conçu pour les **Projets de taille petite à moyenne**, les **Prototypes**, ou le **Développement d'Outils**. Il offre les avantages principaux de l'Injection de Dépendance sans la complexité et le coût en performance des gros frameworks comme Zenject ou VContainer.
+Conçu pour les **projets de taille petite à moyenne**, les **prototypes**, ou le **développement d'outils**. Il offre les avantages principaux de l'Injection de Dépendance sans la complexité de gros frameworks comme Zenject ou VContainer.
 
 **Forces :**
 - **Léger :** Impact minimal sur les performances et petite base de code.
 - **Simple :** Courbe d'apprentissage très faible. Facile à configurer et déboguer.
 - **Pas de Dépendances Externes :** Garde votre projet propre.
 - **Explicite :** Vous contrôlez exactement ce qui est enregistré et injecté.
-- **Fonctionnalités Uniques :** Injection optionnelle, InjectAll, et fenêtre de Debug.
+- **Support d'Interfaces :** Enregistrez une classe concrète sous un type d'interface.
+- **Injection Optionnelle :** Les champs peuvent être ignorés silencieusement si le service est absent.
 
 **Faiblesses :**
-- **Enregistrement Manuel :** Vous devez enregistrer manuellement les services dans le Composition Root.
-- **Fonctionnalités Basiques :** Ne supporte pas les fonctionnalités complexes comme la résolution de dépendances circulaires, les sous-conteneurs, ou les liaisons conditionnelles.
-- **Scan de Scène :** L'auto-injection repose sur `FindObjectsByType`, qui peut être lent sur de très grandes scènes avec des milliers de MonoBehaviours (bien que cela puisse être optimisé en injectant manuellement des objets spécifiques).
+- **MonoBehaviour uniquement :** Les services doivent être des composants `MonoBehaviour` présents dans la scène au démarrage.
+- **Fonctionnalités Basiques :** Pas de résolution de dépendances circulaires, sous-conteneurs, ou liaisons conditionnelles.
+- **Scan de Scène :** L'auto-injection utilise `FindObjectsByType`, qui peut être lent sur de très grandes scènes.
 
-### Fonctionnalités Avancées
+---
 
-#### Injection Optionnelle
-Gérez gracieusement les services manquants sans exception :
-```csharp
-public class Analytics : MonoBehaviour
-{
-    [Inject(Optional = true)]
-    private IAnalyticsService _analytics; // null si non enregistré
+### Gestionnaire Audio (Audio Manager)
 
-    public void Track(string event)
-    {
-        _analytics?.TrackEvent(event); // Utilisation sécurisée
-    }
-}
-```
-
-#### InjectAll - Injection de Collections
-Injectez toutes les instances enregistrées d'un type :
-```csharp
-public interface IEnemy { void Attack(); }
-
-[Service] public class Zombie : MonoBehaviour, IEnemy { }
-[Service] public class Skeleton : MonoBehaviour, IEnemy { }
-
-public class EnemyManager : MonoBehaviour
-{
-    [InjectAll]
-    private List<IEnemy> _allEnemies; // Contient [Zombie, Skeleton]
-
-    public void AttackAll()
-    {
-        foreach (var enemy in _allEnemies)
-            enemy.Attack();
-    }
-}
-```
-
-#### TryResolve & IsRegistered
-Vérifiez et résolvez les services de manière sécurisée :
-```csharp
-// Vérifier si un service existe
-if (container.IsRegistered<IAnalytics>())
-{
-    // Service disponible
-}
-
-// Résolution sécurisée sans exception
-if (container.TryResolve<ILeaderboard>(out var leaderboard))
-{
-    leaderboard.SubmitScore(100);
-}
-```
-
-#### Injection Tardive
-Injectez des dépendances dans des objets activés après le démarrage :
-```csharp
-public class DynamicUI : MonoBehaviour
-{
-    [Inject] private GameManager _gameManager;
-
-    private void OnEnable()
-    {
-        // Demander l'injection pour les objets activés après l'initialisation DI
-        DICompositionRoot.RequestInjection(this);
-    }
-}
-```
-
-#### Fenêtre de Debug
-Une fenêtre Editor stylisée pour visualiser tous les services enregistrés.
-
-**Accès :** `EthanToolBox > Injection > Debug Injection Panel`
+Un système audio professionnel avec pooling, cross-fading, et une configuration par données via `SoundData`.
 
 **Fonctionnalités :**
-- 🎨 **Interface Moderne** : Vue divisée avec liste et inspecteur.
-- 🔗 **Graphe de Dépendance** : Visualise les relations "Dépend de" et "Utilisé par".
-- ⚡ **Profiler** : Affiche le temps d'initialisation (ms) pour détecter les services lents.
-- 🛡️ **Détection de Cycles** : Affiche une ALERTE ROUGE visuelle si une boucle infinie est détectée.
-- 🔍 **Inspecteur** : Visualisez les champs publics et lancez des méthodes ("Invoke") directement.
-- 📌 **Ping** : Localisez les services MonoBehaviour dans la scène.
+- **Data-Driven :** Tous les réglages audio (volume, pitch, 3D blend, variance) sont stockés dans des `SoundData` ScriptableObjects.
+- **Pooling :** Réutilisation automatique des `AudioSource` pour économiser les performances.
+- **Canaux :** Support intégré pour Master, Musique, SFX, UI, et Voix.
+- **Transitions Musicales :** Cross-fading fluide entre les pistes via un double AudioSource.
 
-#### Optimisation des Performances (Lazy Injection)
-Pour les services lourds, utilisez `Lazy<T>` pour différer la création jusqu'au premier usage.
+#### 1. Configuration
+1. Dans l'éditeur Unity, allez dans **EthanToolBox > Setup Audio Manager**.
+2. Cela crée un GameObject `AudioManager` dans votre scène s'il n'existe pas déjà.
+3. Il est automatiquement enregistré comme service DI (`IAudioManager`), prêt à être injecté.
 
+#### 2. Créer un Sound Data
+Au lieu d'utiliser des `AudioClip` bruts, créez des assets `SoundData`.
+1. Clic droit dans la **Project Window**.
+2. Allez dans **Create > EthanToolBox > Audio > Sound Data**.
+3. Nommez le fichier (ex: `Sfx_Jump` ou `Music_Battle`).
+4. **Réglages Inspector :**
+   - **Clips :** Glissez vos clips audio. Si plusieurs sont ajoutés, un est choisi aléatoirement.
+   - **Volume / Pitch :** Définissez les valeurs de base.
+   - **Randomisation :** Ajoutez de la variance pour des sons plus naturels (ex: Volume Variance `0.1`).
+   - **Spatial Blend :** `0` pour 2D (UI/Musique) ou `1` pour 3D (sons du monde).
+
+#### 3. Jouer des Sons
 ```csharp
-public class Player : MonoBehaviour
-{
-    // Le service n'est PAS créé ici. Démarrage instantané.
-    [Inject] private Lazy<ReplaySystem> _replaySystem; 
+using UnityEngine;
+using EthanToolBox.Core.DependencyInjection;
+using EthanToolBox.Core.Audio;
 
-    public void OnReplay()
+public class PlayerAudio : MonoBehaviour
+{
+    [Inject] private IAudioManager _audioManager;
+
+    [Header("Audio Assets")]
+    public SoundData JumpSound;
+    public SoundData BackgroundMusic;
+
+    private void Start()
     {
-        // Le service est créé ICI (une seule fois) lors de l'accès à .Value
-        _replaySystem.Value.StartReplay();
+        // Jouer la musique avec un crossfade de 2 secondes
+        _audioManager.PlayMusic(BackgroundMusic, 2f);
+    }
+
+    public void PlayJump()
+    {
+        // Jouer SFX à la position du joueur (important pour les sons 3D)
+        _audioManager.PlaySfx(JumpSound, transform.position);
     }
 }
 ```
 
-> [!NOTE]
-> Toutes les fonctionnalités de debug (Graphe, Profiler, Tracking) sont **supprimées** du Build final (`#if UNITY_EDITOR`). Le jeu compile uniquement la logique d'injection pure pour une performance maximale.
+#### 4. Contrôle du Volume Global
+```csharp
+// Régler le volume Master à 50%
+_audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
 
-### Audio Manager (Gestionnaire Audio)
+// Couper la Musique
+_audioManager.SetGlobalVolume(AudioChannel.Music, 0f);
+```
 
-Un système audio professionnel avec pooling, cross-fading et configuration par données.
+#### 5. Intégration Audio Mixer
+Pour un contrôle audio professionnel, utilisez l'Audio Mixer de Unity.
 
-**Fonctionnalités :**
-- **SoundData :** Configurez les sons (volume, pitch, variance, 3D) dans des ScriptableObjects.
-- **Pooling :** Réutilisation efficace des AudioSources.
-- **Canaux :** Master, Musique, SFX, UI, Voix.
-- **Cross-Fading :** Transitions fluides entre les musiques.
+1. **Créer un Audio Mixer** (Clic droit > Create > Audio Mixer).
+2. **Créer des Groupes :** Master, Musique, SFX, UI, Voix.
+3. **Assigner dans l'AudioManager :** Sélectionnez le GameObject `AudioManager` et glissez votre Mixer et vos Groupes dans les champs correspondants.
+4. **Override dans SoundData :** Surchargez le groupe de mixer par son en assignant un `Mixer Group` spécifique dans l'asset `SoundData`.
 
-**Utilisation :**
-
-1.  **Configuration :**
-    - Dans l'éditeur Unity, allez dans **EthanToolBox > Setup Audio Manager**.
-    - Cela créera automatiquement un GameObject `AudioManager` dans votre scène s'il n'existe pas déjà.
-    - Il est automatiquement enregistré comme service, il est donc prêt à être injecté immédiatement.
-
-2.  **Créer un Sound Data :**
-    - Clic droit > **Create > EthanToolBox > Audio > Sound Data**.
-    - Assignez les clips et ajustez les réglages (Aléatoire, Spatial Blend, etc.).
-
-3.  **Jouer des Sons :**
-    ```csharp
-    public class Player : MonoBehaviour
-    {
-        [Inject] private IAudioManager _audioManager;
-        
-        public SoundData JumpSound;
-        public SoundData MusicTrack;
-
-        public void Jump()
-        {
-            // Jouer SFX (automatiquement poolé)
-            _audioManager.PlaySfx(JumpSound, transform.position);
-        }
-
-        public void StartMusic()
-        {
-            // Jouer Musique avec crossfade de 2s
-            _audioManager.PlayMusic(MusicTrack, 2f);
-        }
-    }
-    ```
-
-4.  **Contrôler le Volume :**
-    ```csharp
-    _audioManager.SetGlobalVolume(AudioChannel.Master, 0.5f);
-    _audioManager.SetGlobalVolume(AudioChannel.Music, 0.8f);
-    ```
-
-#### 5. Avancé : Intégration Audio Mixer
-Pour un contrôle audio professionnel, vous pouvez utiliser l'**Audio Mixer** de Unity.
-
-1.  **Créer un Audio Mixer** dans votre projet (Clic droit > Create > Audio Mixer).
-2.  **Créer des Groupes :** Créez des groupes comme Master, Musique, SFX, UI, Voix.
-3.  **Assigner dans l'AudioManager :** Sélectionnez le GameObject `AudioManager` dans votre scène.
-    - Glissez votre Mixer dans le champ `Audio Mixer`.
-    - Glissez vos Groupes spécifiques dans les champs correspondants (`Master Group`, `Music Group`, etc.).
-4.  **Override dans SoundData :** Par défaut, les sons jouent sur le groupe de leur canal (ex: `PlaySfx` utilise `SfxGroup`). Vous pouvez surcharger cela par son dans l'asset `SoundData` en assignant un `Mixer Group` spécifique.
+---
 
 ### Gestion de Scène (Scene Management)
 
-Un système de gestion de scène propre et professionnel.
+Un système de gestion de scènes propre et type-safe.
 
 **Fonctionnalités :**
 - **Groupes de Scènes :** Définissez une collection de scènes à charger ensemble via un ScriptableObject.
-- **Drag & Drop :** Utilisez `SceneReference` pour glisser-déposer des scènes directement dans l'Inspecteur.
-- **Chargement Synchrone :** API simple pour charger des scènes et des groupes.
+- **Drag & Drop :** Utilisez `SceneReference` pour glisser des scènes directement dans l'Inspecteur — sans noms de scènes en string.
+- **Chargement Asynchrone :** La première scène du groupe se charge en Single, les suivantes en Additive.
 
-**Utilisation :**
+#### Utilisation
 
 1. **Configurer le Scene Manager :**
-   - Dans l'éditeur Unity, allez dans **EthanToolBox > Setup Scene Manager**.
-   - Cela crée un GameObject `SceneManager` avec le composant `SceneLoader`.
+   - Allez dans **EthanToolBox > Setup Scene Manager**.
+   - Cela crée un GameObject `SceneLoader` enregistré comme `ISceneLoader`.
 
 2. **Créer un Groupe de Scènes :**
-   - Clic droit dans la vue Projet -> **Create > EthanToolBox > Scene Management > Scene Group**.
-   - Glissez et déposez vos assets de scène dans la liste `Scenes`.
+   - Clic droit dans la vue Projet → **Create > EthanToolBox > Scene Management > Scene Group**.
+   - Glissez vos assets de scène dans la liste `Scenes`.
 
 3. **Charger des Scènes :**
    ```csharp
@@ -302,155 +224,57 @@ Un système de gestion de scène propre et professionnel.
 
        public void OnPlayButtonClicked()
        {
-           // Charger un groupe de scènes
            _sceneLoader.LoadSceneGroup(Level1Group);
        }
    }
    ```
 
+---
 
+### Outils Éditeur
 
-### Scene Switcher Toolbar
+#### Scene Switcher Toolbar
 
-Un menu déroulant pratique dans la barre d'outils de l'éditeur Unity (à côté du bouton Play) pour changer rapidement de scène.
+Un menu déroulant dans la barre d'outils de l'éditeur Unity (à côté du bouton Play) pour changer rapidement de scène.
 
-**Fonctionnalités :**
-- Liste toutes les scènes du projet.
-- Respecte la hiérarchie des dossiers.
+- Liste toutes les scènes du projet, en respectant la hiérarchie des dossiers.
 - Demande de sauvegarder les changements avant de changer.
 
-### 🟢 Indicateur Live en mode Play
+#### Hierarchy Enhancer
 
-#### 🏭 Factories (Création Dynamique)
-Besoin de créer des objets (comme des ennemis) avec leurs dépendances ? Utilisez `Func<T>`.
+Une refonte visuelle de la fenêtre Hiérarchie.
 
-```csharp
-public class Spawner : MonoBehaviour
-{
-    // Injectez une fonction usine au lieu d'une instance
-    [Inject] private Func<Enemy> _enemyFactory; 
+- **En-têtes :** Nommez un GameObject `[NOM]` (ex: `[SYSTEMES]`) pour créer un séparateur coloré.
+- **Icônes Composants :** Icônes colorées alignées à droite pour les composants courants (Caméra, Lumière, Audio, etc.). Cliquez pour les activer/désactiver.
+- **Gestion des Scripts :** Les scripts personnalisés affichent une icône. Plusieurs scripts sont regroupés en une icône avec un menu pour les activer individuellement.
+- **Sélecteur de Layer :** Changez de layer directement depuis la ligne de la Hiérarchie.
 
-    public void SpawnWave()
-    {
-        // Crée une nouvelle instance d'Enemy avec toutes ses dépendances injectées !
-        var newEnemy = _enemyFactory(); 
-    }
-}
-```
+**Activer via :** `EthanToolBox > Hierarchy > [Tree Lines | Full | Compact] Mode`
 
-#### 📦 Contextes de Scène (Sous-Conteneurs)
-Séparez vos **Services Globaux** (Audio, Save) de vos **Services Locaux** (Map, AI).
-1. **Global** : Créez un `DICompositionRoot` et cochez `Is Global`. Il persiste entre les scènes.
-2. **Local** : Dans n'importe quelle scène, laissez le `DICompositionRoot` (Is Global = Décoché).
-3. **Magie** : Les racines locales héritent automatiquement des services globaux. Vos objets peuvent injecter les deux !
+#### Hierarchy Renamer Overlay
 
+Un outil de renommage en masse intégré dans la fenêtre Hiérarchie.
 
-
-#### 🛠️ Outils Professionnels
-- **🔍 Analyseur Statique** : `EthanToolBox > Injection > Static Analyzer`. Scanne votre code et vérifie si toutes les injections ont bien un service correspondant **avant** de lancer le jeu.
-
-
-### 🔌 Auto-Inject sur Spawn (Instanciation de Prefabs)
-Quand vous instanciez un prefab avec `Instantiate()`, les scripts de l'objet ne sont PAS injectés. Utilisez `DICompositionRoot.Spawn()` à la place.
-
-```csharp
-// Ancienne méthode (Pas d'injection !)
-var enemy = Instantiate(enemyPrefab);
-
-// Nouvelle méthode (Auto-injecté !)
-var enemy = DICompositionRoot.Spawn(enemyPrefab);
-```
-
-### 📡 Event Bus (Communication Découplée)
-Un système "Radio" ultra-léger pour faire communiquer vos services sans qu'ils se connaissent (Découplage).
-
-**1. Créez un Signal (une simple classe/struct) :**
-```csharp
-public struct PlayerDamageSignal { public int Amount; }
-```
-
-**2. Abonnez-vous (Deux méthodes) :**
-```csharp
-public class HUD : MonoBehaviour
-{
-    [Inject] private IEventBus _bus;
-    
-    private void Start() 
-    {
-        // Option A : Avec paramètre (si vous voulez les données)
-        _bus.Subscribe<PlayerDamageSignal>(OnDamage);
-        
-        // Option B : Sans paramètre (juste pour savoir que c'est arrivé)
-         _bus.Subscribe<PlayerDamageSignal>(OnDamageSimple);
-    }
-
-    private void OnDamage(PlayerDamageSignal signal)
-    {
-        Debug.Log($"Aïe ! Pris {signal.Amount} dégâts.");
-    }
-    
-    private void OnDamageSimple()
-    {
-         Debug.Log("Aïe ! Je suis touché.");
-    }
-}
-```
-
-**3. Envoyez (Fire) :**
-```csharp
-public class Player : MonoBehaviour
-{
-    [Inject] private IEventBus _bus;
-    
-    public void TakeDamage(int amount)
-    {
-         _bus.Fire(new PlayerDamageSignal { Amount = amount });
-    }
-}
-```
-
-### Indicateur de Script Hiérarchie
-
-Une aide visuelle dans la fenêtre Hiérarchie pour identifier les objets avec des scripts attachés.
-
-**Fonctionnalités :**
-- **Icône de Script :** Affiche une icône de script sur le côté droit de tout GameObject ayant un `MonoBehaviour` personnalisé attaché.
-- **Nombre de Scripts :** Si un objet a plusieurs scripts, un chiffre superposé indique le nombre.
-- **Infobulle :** Passer la souris sur l'icône affiche les noms de tous les scripts attachés.
-
-### Hierarchy Renamer Overlay (Renommage Hiérarchie)
-
-Un outil de renommage en masse intégré directement dans la fenêtre Hiérarchie.
-
-**Fonctionnalités :**
-- **Interface Overlay :** Apparaît automatiquement en bas à droite de la Hiérarchie lorsque plusieurs objets sont sélectionnés.
-- **Renommage en masse :** Renommez plusieurs objets avec un préfixe et un index auto-incrémenté.
+- **Interface Overlay :** Apparaît automatiquement en bas à droite de la Hiérarchie quand plusieurs GameObjects sont sélectionnés.
+- **Renommage en Masse :** Renommez avec un préfixe et un index auto-incrémenté.
 - **Support Undo :** Totalement réversible avec Ctrl+Z.
 
-### Hierarchy Enhancer (Amélioration Hiérarchie)
-
-Une refonte visuelle de la fenêtre Hiérarchie pour améliorer l'organisation et le workflow.
-
-**Fonctionnalités :**
-- **En-têtes :** Renommez n'importe quel GameObject en `[NOM]` (ex: `[SYSTEMES]`) pour créer un séparateur coloré.
-- **Toggles Composants :** Icônes alignées à droite pour les composants (Lumières, Caméras, etc.). Cliquez pour les Activer/Désactiver.
-- **Gestion des Scripts :**
-  - Les scripts standards affichent une icône.
-  - Plusieurs scripts sont regroupés en une seule icône. Cliquez pour ouvrir un menu et désactiver des scripts spécifiques.
-- **Sélecteur de Layer :** Changez rapidement de Layer directement depuis la ligne de la Hiérarchie.
-
-### Inspector Component Toggler (Toggle Inspecteur)
+#### Inspector Component Toggler
 
 Une barre utilitaire injectée en haut de l'Inspecteur pour gérer la visibilité des composants.
 
-**Fonctionnalités :**
-- **Grille d'icônes :** Affiche les icônes de tous les composants attachés en haut de l'Inspecteur.
-- **Visibilité Toggle :** Cliquez sur une icône pour cacher l'interface du composant (le replier complètement) pour gagner de l'espace. Le composant reste actif.
+- **Grille d'Icônes :** Affiche les icônes de tous les composants attachés en haut de l'Inspecteur.
+- **Toggle Visibilité :** Cliquez sur une icône pour replier l'interface d'un composant (le composant reste actif).
 - **Auto-Refresh :** Se met à jour automatiquement lorsque des composants sont ajoutés ou supprimés.
 
+#### Raccourci Mode Play
 
+Un raccourci clavier configurable (défaut : F1) pour basculer en mode Play et maximiser la Game View.
 
+**Configurer via :** `EthanToolBox > Shortcuts > Configure Shortcut`
+
+---
 
 ## Prérequis
 
-- Unity 2021.3 ou supérieur.
+- Unity 6 (6000.1.2f1) ou supérieur.
