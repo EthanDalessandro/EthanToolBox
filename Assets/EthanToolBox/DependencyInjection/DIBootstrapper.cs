@@ -15,14 +15,15 @@ namespace EthanToolBox.Core.DependencyInjection
 
         private void Awake()
         {
-            RegisterServices();
-            InjectScene();
+            // Parcourt tous les MonoBehaviours de la scène pour trouver les [Service]
+            MonoBehaviour[] allMB = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            RegisterServices(allMB);
+            InjectScene(allMB);
         }
 
-        private void RegisterServices()
+        private void RegisterServices(MonoBehaviour[] allMB)
         {
-            // Parcourt tous les MonoBehaviours de la scène pour trouver les [Service]
-            foreach (MonoBehaviour mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (MonoBehaviour mb in allMB)
             {
                 if (mb == this) continue;
 
@@ -37,13 +38,13 @@ namespace EthanToolBox.Core.DependencyInjection
             }
         }
 
-        private void InjectScene()
+        private void InjectScene(MonoBehaviour[] allMB)
         {
             // Flags pour accéder aux membres publics ET privés des instances
             BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
             // Parcourt tous les MonoBehaviours de la scène (actifs et inactifs)
-            foreach (MonoBehaviour mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (MonoBehaviour mb in allMB)
             {
                 if (mb == this) continue;
 
