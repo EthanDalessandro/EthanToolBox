@@ -12,11 +12,23 @@ namespace EthanToolBox.DependencyInjection
     [DefaultExecutionOrder(-1000)]
     public class DIBootstrapper : MonoBehaviour
     {
+        [Header("Debug Info")]
+        [SerializeField, HideInInspector] private bool _showDebugServices = true;
+        [SerializeField, HideInInspector] private System.Collections.Generic.List<ServiceDebugEntry> _registeredServices = new();
+
+        [System.Serializable]
+        public struct ServiceDebugEntry
+        {
+            public string ServiceType;
+            public MonoBehaviour Instance;
+        }
+
         private DIContainer _container;
 
         private void Awake()
         {
             _container = new DIContainer();
+            _registeredServices.Clear();
 
             // Récupère tous les MonoBehaviour présents dans la scène
             var allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
@@ -30,8 +42,16 @@ namespace EthanToolBox.DependencyInjection
                 if (!hasService) continue;
                 
                 _container.Register(behaviour.GetType(), behaviour);
+                _registeredServices.Add(new ServiceDebugEntry 
+                { 
+                    ServiceType = behaviour.GetType().Name, 
+                    Instance = behaviour 
+                });
+                
                 Debug.Log($"[DI] Service enregistré : {behaviour.GetType().Name}");
             }
+
+            _registeredServices.Sort((a, b) => string.Compare(a.ServiceType, b.ServiceType, System.StringComparison.Ordinal));
 
             //  injection dans les consommateurs 
             foreach (MonoBehaviour behaviour in allBehaviours)

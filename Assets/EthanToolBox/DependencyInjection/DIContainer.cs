@@ -34,10 +34,12 @@ namespace EthanToolBox.DependencyInjection
             throw new Exception($"[DI] Service '{type.Name}' introuvable. As-tu bien ajouté [Service] sur la classe ?");
         }
 
-        // Récupère un service, ou null si non trouvé (version sans exception)
+        // Récupère un service, ou null si non trouvé
         public bool TryResolve(Type type, out object instance)
         {
             return _services.TryGetValue(type, out instance);
         }
+
+        public IReadOnlyDictionary<Type, object> Services => _services;
     }
 }
