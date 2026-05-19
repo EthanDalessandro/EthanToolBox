@@ -1,78 +1,91 @@
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
-namespace EthanToolBox.Core.DependencyInjection
+namespace EthanToolBox.DependencyInjection
 {
-    // S'exécute avant tous les autres MonoBehaviours (Awake order = -1000)
+    // Ce MonoBehaviour doit être présent dans chaque scène
+    //
+    // Il s'exécute AVANT tous les autres scripts grâce à DefaultExecutionOrder(-1000)
+    // Au démarrage il fait deux passes :
+    //   1. Trouve tous les [Service] dans la scène → les enregistre dans le container
+    //   2. Trouve tous les [Inject] dans la scène  → les remplit avec les services trouvés
     [DefaultExecutionOrder(-1000)]
-    [AddComponentMenu("EthanToolBox/DI/DI Bootstrapper")]
     public class DIBootstrapper : MonoBehaviour
     {
-        // Dictionnaire : Type → instance du service
-        private readonly Dictionary<Type, object> _services = new();
+        [Header("Debug Info")]
+        [SerializeField, HideInInspector] private bool _showDebugServices = true;
+        [SerializeField, HideInInspector] private System.Collections.Generic.List<ServiceDebugEntry> _registeredServices = new();
+
+        [System.Serializable]
+        public struct ServiceDebugEntry
+        {
+            public string ServiceType;
+            public MonoBehaviour Instance;
+        }
+
+        private DIContainer _container;
 
         private void Awake()
         {
-            // Parcourt tous les MonoBehaviours de la scène pour trouver les [Service]
-            MonoBehaviour[] allMB = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            RegisterServices(allMB);
-            InjectScene(allMB);
-        }
+            _container = new DIContainer();
+            _registeredServices.Clear();
 
-        private void RegisterServices(MonoBehaviour[] allMB)
-        {
-            foreach (MonoBehaviour mb in allMB)
+            // Récupère tous les MonoBehaviour présents dans la scène
+            var allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+
+            // enregistrement des services
+            foreach (MonoBehaviour behaviour in allBehaviours)
             {
-                if (mb == this) continue;
-
-                //GetType retourne le type concret et getcustomattribute va venir chercher l'attribut en question
+                // Vérifie si la classe a l'attribut [Service]
+                bool hasService = behaviour.GetType().IsDefined(typeof(ServiceAttribute), inherit: true);
                 
-                ServiceAttribute attribute = mb.GetType().GetCustomAttribute<ServiceAttribute>();
-                if (attribute == null) continue;
+                if (!hasService) continue;
+                
+                _container.Register(behaviour.GetType(), behaviour);
+                _registeredServices.Add(new ServiceDebugEntry 
+                { 
+                    ServiceType = behaviour.GetType().Name, 
+                    Instance = behaviour 
+                });
+                
+                Debug.Log($"[DI] Service enregistré : {behaviour.GetType().Name}");
+            }
 
-                // La clé = l'interface déclarée, ou le type lui-même si pas précisé
-                Type key = attribute.ServiceType ?? mb.GetType();
-                _services[key] = mb;
+            _registeredServices.Sort((a, b) => string.Compare(a.ServiceType, b.ServiceType, System.StringComparison.Ordinal));
+
+            //  injection dans les consommateurs 
+            foreach (MonoBehaviour behaviour in allBehaviours)
+            {
+                InjectInto(behaviour);
             }
         }
 
-        private void InjectScene(MonoBehaviour[] allMB)
+        // Parcourt les champs du MonoBehaviour et injecte les services marqués [Inject]
+        private void InjectInto(MonoBehaviour target)
         {
-            // Flags pour accéder aux membres publics ET privés des instances
-            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+            // On récupère tous les champs de la classe
+            var fields = target.GetType().GetFields(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
+            );
 
-            // Parcourt tous les MonoBehaviours de la scène (actifs et inactifs)
-            foreach (MonoBehaviour mb in allMB)
+            foreach (FieldInfo field in fields)
             {
-                if (mb == this) continue;
+                // On cherche l'attribut [Inject] sur ce champ
+                InjectAttribute injectAttr = field.GetCustomAttribute<InjectAttribute>();
+                if (injectAttr == null) continue;
 
-                Type type = mb.GetType();
-
-                //  Injection dans les fields 
-                foreach (FieldInfo field in type.GetFields(flags))
+                // On essaie de trouver le service correspondant au type du champ
+                if (_container.TryResolve(field.FieldType, out object service))
                 {
-                    InjectAttribute attribute = field.GetCustomAttribute<InjectAttribute>();
-                    if (attribute == null) continue;
-
-                    if (_services.TryGetValue(field.FieldType, out object service))
-                        field.SetValue(mb, service); // Injecte l'instance dans le field
-                    else if (!attribute.Optional)
-                        Debug.LogError($"[DI] {field.FieldType.Name} not registered (required by {type.Name}.{field.Name})");
+                    field.SetValue(target, service);
                 }
-
-                //  Injection dans les properties 
-                foreach (PropertyInfo prop in type.GetProperties(flags))
+                else if (!injectAttr.Optional)
                 {
-                    if (!prop.CanWrite) continue;
-                    InjectAttribute attribute = prop.GetCustomAttribute<InjectAttribute>();
-                    if (attribute == null) continue;
-
-                    if (_services.TryGetValue(prop.PropertyType, out object service))
-                        prop.SetValue(mb, service); // Injecte l'instance dans la property
-                    else if (!attribute.Optional)
-                        Debug.LogError($"[DI] {prop.PropertyType.Name} not registered (required by {type.Name}.{prop.Name})");
+                    // Si le champ n'est pas optionnel, on affiche une erreur claire
+                    Debug.LogError(
+                        $"[DI] Impossible d'injecter '{field.FieldType.Name}' dans '{target.GetType().Name}'. " +
+                        $"As-tu ajouté [Service] sur '{field.FieldType.Name}' et placé le GameObject dans la scène ?"
+                    );
                 }
             }
         }
