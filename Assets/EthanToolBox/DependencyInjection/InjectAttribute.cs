@@ -1,15 +1,17 @@
 using System;
 
-namespace EthanToolBox.Core.DependencyInjection
+namespace EthanToolBox.DependencyInjection
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    // Marque un champ à injecter automatiquement.
+    // Le DIBootstrapper va remplir ce champ avec le service correspondant.
+    [AttributeUsage(AttributeTargets.Field)]
     public class InjectAttribute : Attribute
     {
-        /// <summary>
-        /// If true, the field will be set to null/default if the service is not registered.
-        /// If false (default), an exception will be thrown.
-        /// </summary>
-        public bool Optional { get; set; } = false;
+        public bool Optional { get; }
+
+        public InjectAttribute(bool optional = false)
+        {
+            Optional = optional;
+        }
     }
 }
-
