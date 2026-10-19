@@ -1,6 +1,6 @@
 ## Installation
 
-Vous pouvez installer ce package directement depuis GitHub via le Unity Package Manager.
+Vous pouvez installer ce package directement depuis le Unity Package Manager.
 
 1. Ouvrez votre projet Unity.
 2. Allez dans **Window > Package Manager**.
